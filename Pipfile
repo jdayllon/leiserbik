@@ -1,0 +1,35 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+
+[dev-packages]
+bumpversion = "*"
+wheel = "*"
+watchdog = "*"
+flake8 = "*"
+tox = "*"
+coverage = "*"
+pytest = "*"
+pytest-runner = "*"
+PyInstaller = "*"
+Sphinx = "*"
+twine = "*"
+twitter = "*"
+leiserbik = {editable = true,path = "."}
+ipython = "*"
+
+[packages]
+click = "*"
+email-validator = "*"
+bs4 = "*"
+loguru = "*"
+arrow = "*"
+pypeln = "*"
+uvicorn = "*"
+fastapi = "*"
+requests = "*"
+aiohttp = "*"
+ratelimit = "*"
+docutils = "*"
+rst2html5 = "*"
+rst2txt = "*"
