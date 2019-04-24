@@ -31,6 +31,8 @@ def main(ctx, debug):
 def user(ctx, screen_name):
     """Retrieves info about user. If no option is given string after command is identified with screen name requiered"""
 
+    loguru.info("Running User Extraction")
+
     if screen_name is None and len(ctx.args) == 1:
         screen_name = ctx.args[0]
 
@@ -45,6 +47,7 @@ def user(ctx, screen_name):
 @click.option('-s','--screen_name', help='Twitter Screen Name.')
 def query_user(ctx, screen_name):
     """Retrieves info about user. If no option is given string after command is identified with screen name requiered"""
+    loguru.info("Running User Query")
 
     if screen_name is None and len(ctx.args) == 1:
         screen_name = ctx.args[0]
@@ -57,11 +60,20 @@ def query_user(ctx, screen_name):
 
 @main.command(context_settings=dict(allow_extra_args=True))
 @click.pass_context
-def query(ctx):
+def rawquery(ctx, query):
     """Console script for leiserbik."""
 
-    cprint(dir(ctx.args))
-    cprint(ctx.args)
+    loguru.info("Running Query")
+
+    if query is None and len(ctx.args) == 1:
+        query = ctx.args[0]
+
+    res = watcher.rawquery(query)
+
+    cprint(res)
+
+    #cprint(dir(ctx.args))
+    #cprint(ctx.args)
 
     return 0
 

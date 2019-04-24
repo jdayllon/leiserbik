@@ -66,7 +66,10 @@ class TwitterQuery:
 
     @property
     def start_date(self):
-        return self._start_date.format(SHORT_DATE_FORMAT)
+        if self._end_date is None:
+            return arrow.get().format(SHORT_DATE_FORMAT)
+        else:
+            return self._start_date.format(SHORT_DATE_FORMAT)
 
     @start_date.setter
     def start_date(self, date):
@@ -76,11 +79,13 @@ class TwitterQuery:
 
     @property
     def end_date(self):
-        return self._end_date.format(SHORT_DATE_FORMAT)
+        if self._end_date is None:
+            return arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)
+        else:
+            return self._end_date.format(SHORT_DATE_FORMAT)
 
-
-    @property.setter
-    def end_date(self,date ):
+    @end_date.setter
+    def end_date(self,date):
         if type(date) is str:
             self._end_date = arrow.get(date, SHORT_DATE_FORMAT)
 
@@ -101,7 +106,7 @@ class TwitterQuery:
         self._words = words
 
 
-    def query(self):
+    def query(self, with_dates = False):
         query_terms = []
 
         if self._screen_name is not None:
@@ -132,10 +137,10 @@ class TwitterQuery:
 
             query_terms += [self._hashtags]
 
-        if self._start_date is not None:
+        if with_dates and self._start_date is not None:
             query_terms += [f"since:{self._start_date}"]
 
-        if self._end_date is not None:
+        if with_dates and self._end_date is not None:
             query_terms += [f"until:{self._end_date}"]
 
         if self._phrase is not None:
