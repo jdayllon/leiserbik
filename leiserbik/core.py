@@ -22,7 +22,7 @@ def __generate_search_url_by_day(query: str, date: Arrow):
 
 
 def __session_get_request(session:Session, url:str):
-    session.headers.update({'User-Agent': GENERATED_USER_AGENT})
+    #session.headers.update({'User-Agent': GENERATED_USER_AGENT})
 
     if 'HTTPS_PROXY' in globals():
         session.proxies = {"http": '127.0.0.1:5566', "https": '127.0.0.1:5566'}
@@ -120,18 +120,22 @@ def  _get_page_branches(content):
 
     return data
 
-def _get_user_statuses(user):
+def _get_user_statuses(user, max_id = 0):
 
     session = requests.Session()
     branch = 0
     query_from_content = user
-    res = __session_get_request(session, f"https://mobile.twitter.com/{user}")
+    if max_id > 0:
+        res = __session_get_request(session, f"https://mobile.twitter.com/{user}?max_id={max_id}")
+    else:
+        res = __session_get_request(session, f"https://mobile.twitter.com/{user}")
     #res = session.get(f"https://mobile.twitter.com/{user}")
     statuses = []
 
     logger.debug(f"Requests: {res.url} |{res.status_code}|")
     if res.status_code == 200:
         cur_content = res.content.decode('utf-8')
+        #logger.info(cur_content)
     else:
         return statuses
 
@@ -141,18 +145,20 @@ def _get_user_statuses(user):
 
         if len(cur_statuses) == 0:
             logger.debug(f"Statuses 💬 not Found 😅 |{user}|")
-            nojs_post_url =REGEX_NOJS_ROUTER.findall(cur_content)[0]
-            logger.debug(f"POST Requests detected: {nojs_post_url}")
+            #nojs_post_url =REGEX_NOJS_ROUTER.findall(cur_content)[0].split('"')[0]
+            #logger.debug(f"POST Requests detected: {nojs_post_url}")
 
-            cur_content = __session_post_request(session,nojs_post_url)
+            #cur_content = __session_post_request(session,nojs_post_url)
 
-            if cur_content is None and type(cur_content) is bytes:
-                cur_content = cur_content.decode('utf-8')
-                logger.info(cur_content)
-                cur_statuses_check = __get_statuses(cur_content)
+            #if cur_content is None and type(cur_content) is bytes:
+            #    cur_content = cur_content.decode('utf-8')
+            #    logger.info(cur_content)
+            #    cur_statuses_check = __get_statuses(cur_content)
 
-                if len(cur_statuses_check) == 0:
-                    return statuses
+            #    if len(cur_statuses_check) == 0:
+            #        return statuses
+
+            return statuses
 
         else:
             statuses = list(set(cur_statuses + statuses))

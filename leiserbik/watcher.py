@@ -3,6 +3,7 @@ from leiserbik.core import __generate_search_url_by_range, _get_page_branches,_g
 from leiserbik.async_http import fetch_all
 from pypeln import asyncio_task as aio
 from pypeln import thread as th
+import operator
 
 def query(query: str, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
 
@@ -19,7 +20,6 @@ def query(query: str, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_
     stage_results = aio.flat_map(_get_page_branches, stage_results, workers=15)
     stage_results = th.flat_map(_get_branch_statuses, stage_results, workers=15)
 
-
     results = list(set(stage_results))
 
     logger.info(f"Getted {len(results)} 💬")
@@ -34,7 +34,7 @@ def user_activity(user:str, start_date:str=arrow.get().format(SHORT_DATE_FORMAT)
 
 def user_by_id(user:str, max_id: int = 0):
     logger.info(f"Retrieving info {user} 💬 ")
-    results = _get_user_statuses(user)
+    results = _get_user_statuses(user, max_id)
     logger.info(f"Retrieved {user} statuses: {len(results)} 💬 ")
     return results
 
@@ -44,3 +44,33 @@ def user_by_query(user:str, max_id: int = 0):
     logger.info(f"Retrieved activiy {user} statuses: {len(results)} 💬 ")
     return results
 
+def hashtag(hashtag, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
+
+    query_hashtag = hashtag.replace("#","")
+
+
+    logger.info(f"Querying for {query_hashtag}")
+
+    results = query(query_hashtag, start_date, end_date)
+    logger.info(f"Retrieved hashtag {query_hashtag} statuses: {len(results)} 💬 ")
+
+def hashtags(hashtags, type_operator = operator.or_, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
+
+    if type_operator == operator.or_:
+
+        query_hashtag = " OR ".join(hashtags)
+
+    elif type_operator == operator.and_:
+
+        query_hashtag = " AND ".join(hashtags)
+
+    logger.info(f"Querying for '{query_hashtag}'")
+
+    results = query(query_hashtag, start_date, end_date)
+    logger.info(f"Retrieved hashtag {query_hashtag} statuses: {len(results)} 💬 ")
+
+def geolocation(lat,lon, radius, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
+    logger.info(f"Retrieving for [LAT:{lan}, LON:{lon},  Radious:{radius}] 🗺 ")
+    results = query(f"geocode:{lan},{lon},{lon}", start_date, end_date)
+    logger.info(f"Retrieved for locaton [LAT:{lan}, LON:{lon},  Radious:{radius}] 🗺 statuses : {len(results)} 💬 ")
+    return results
