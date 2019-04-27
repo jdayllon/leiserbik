@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import twitter
-from loguru import logger
 
 """Main module."""
 class Hunter:

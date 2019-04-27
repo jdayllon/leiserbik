@@ -1,11 +1,14 @@
-from leiserbik import *
-import urllib
-from arrow import Arrow
-import requests
-from requests import Session
 import copy
-from ratelimit import limits, sleep_and_retry
 import time
+import urllib
+
+import requests
+from arrow import Arrow
+from ratelimit import limits, sleep_and_retry
+from requests import Session
+
+from leiserbik import *
+
 
 def __generate_search_url_by_day(query: str, date: Arrow):
     """
@@ -36,7 +39,12 @@ def __session_get_request(session:Session, url:str):
 @limits(calls=50, period=60)
 def __session_get_rated_requests(session:Session, url:str):
     logger.trace(f"👮‍Rate limited GET request: {url}")
-    return session.get(url)
+    try:
+        return session.get(url)
+    except:
+        logger.warning(f"🚨 Fail on GET request - Retry on 30s: {url}")
+        time.sleep(10)
+        return session.get(url)
 
 def __session_post_request(session:Session, url):
     session.headers.update({'User-Agent': GENERATED_USER_AGENT})
