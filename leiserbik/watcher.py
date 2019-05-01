@@ -5,7 +5,8 @@ from pypeln import thread as th
 
 from leiserbik import *
 from leiserbik.async_http import fetch_all
-from leiserbik.core import __generate_search_url_by_range, _get_page_branches, _get_branch_statuses, _get_user_statuses
+from leiserbik.core import __generate_search_url_by_range, _get_page_branches, __get_statuses, _get_user_statuses, \
+    list_no_dupes, not_in_list, _get_branch_walk
 from leiserbik.query import TwitterQuery
 
 
@@ -20,34 +21,33 @@ def iter_query(tq : TwitterQuery ):
     logger.debug(f"Obtainer Twitter Query Object with query 🔎 {cur_query}")
     return iter_rawquery(cur_query, tq.end_date)
 
-def rawquery(query: str, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
+
+def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT),
+             end_date: str = arrow.get().shift(days=-15).
+             format(SHORT_DATE_FORMAT)):
 
     logger.debug("Converting dates from string")
     init_date = arrow.get(start_date)
-    finish_date = arrow.get(end_date) 
+    finish_date = arrow.get(end_date)
 
-    logger.info("Scrapping 🐦 with:[%s] From 🗓️:[%s] ➡️ To 🗓️:[%s]" % (query, init_date.format('YYYY-MM-DD'), finish_date.format('YYYY-MM-DD')))
+    logger.info("Scrapping 🐦 with:[%s] From 🗓️:[%s] ➡️ To 🗓️:[%s]" % (query, init_date.format('YYYY-MM-DD'),
+                                                                         finish_date.format('YYYY-MM-DD')))
 
     # Create day urls
     urls = __generate_search_url_by_range(query, init_date, finish_date)
 
     stage_results = fetch_all(urls)
     stage_results = aio.flat_map(_get_page_branches, stage_results, workers=15)
-    stage_results = th.flat_map(_get_branch_statuses, stage_results, workers=15)
+    stage_results = th.flat_map(_get_branch_walk, stage_results, workers=15)
+    stage_results = th.flat_map(__get_statuses, stage_results, workers=15)
 
-    results = list(set(stage_results))
+    results = list_no_dupes(stage_results)
 
     logger.info(f"Getted {len(results)} 💬")
 
     return results
 
 def iter_rawquery(query: str, end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
-
-    def list_no_dupes(l):
-        return list(set(l))
-
-    def not_in_list(l1, l2):
-        return list(set(l2) - set(l1))
 
     # if we are iterating, start_date is "now"
     start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
@@ -74,7 +74,8 @@ def user_activity(user:str, start_date:str=arrow.get().format(SHORT_DATE_FORMAT)
     logger.info(f"Retrieved activiy {user} statuses: {len(results)} 💬 ")
     return results
 
-def iter_user_activity(user:str, end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
+
+def iter_user_activity(user: str, end_date: str = arrow.get().shift(days=-1).format(SHORT_DATE_FORMAT)):
     logger.info(f"Retrieving activiy {user} 💬 ")
     return iter_rawquery(f"from:{user} OR to:{user} OR on:{user}", end_date)
 

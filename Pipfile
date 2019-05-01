@@ -1,9 +1,8 @@
 [[source]]
 url = "https://pypi.python.org/simple"
-verify_ssl = true
+verify_ssl = false
 
 [dev-packages]
-bumpversion = "*"
 wheel = "*"
 watchdog = "*"
 flake8 = "*"
@@ -27,3 +26,6 @@ requests = "*"
 aiohttp = "*"
 ratelimit = "*"
 twitter = "*"
+fake-useragent = "*"
+bs4 = "*"
+scalpl = "*"

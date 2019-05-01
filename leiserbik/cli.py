@@ -1,24 +1,31 @@
 # -*- coding: utf-8 -*-
 
 """Console script for leiserbik."""
-import sys
-import click
-from leiserbik import *
-from leiserbik import watcher
 import pprint
+import sys
+
+import click
+
+from leiserbik import *
+from leiserbik import watcher, capturer
 
 cprint = pprint.PrettyPrinter(indent=4).pprint
 
 @click.group()
-@click.option('--debug/--no-debug', default=False)
+@click.option('-d/-ns', '--debug/--no-debug', default=False)
+@click.option('-s/-ns', '--stream/--no-stream', default=False)
+@click.option('-w/-nw', '--write/--no-write', default=False)
 @click.pass_context
-def main(ctx, debug):
+def main(ctx, debug, stream, write):
+
     if not debug:
         logger.remove()
-        logger.add(sys.stderr, level="INFO")
+        logger.add(sys.stderr, level="WARNING")
 
     ctx.ensure_object(dict)
     ctx.obj['DEBUG'] = debug
+    ctx.obj['STREAM'] = stream
+    ctx.obj['WRITE'] = write
 
 
 #@click.pass_context
@@ -60,17 +67,31 @@ def query_user(ctx, screen_name):
 
 @main.command(context_settings=dict(allow_extra_args=True))
 @click.pass_context
-def rawquery(ctx, query):
+def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(SHORT_DATE_FORMAT)):
     """Console script for leiserbik."""
 
-    loguru.info("Running Query")
+    logger.info("Running Query")
 
     if query is None and len(ctx.args) == 1:
         query = ctx.args[0]
 
-    res = watcher.rawquery(query)
+    if ctx.obj['WRITE']:
+        operation = capturer
+    else:
+        operation = watcher
 
-    cprint(res)
+    if ctx.obj['STREAM']:
+        counter = 0
+        for cur_statuses in operation.iter_rawquery(query, end_date=end_date):
+            logger.info(f"Iteration: {counter} | Elements {len(cur_statuses)}")
+            for cur_status in cur_statuses:
+                cprint(cur_status)
+            counter += 1
+    else:
+
+        cur_statuses = watcher.rawquery(query)
+        for cur_status in cur_statuses:
+            cprint(cur_status)
 
     #cprint(dir(ctx.args))
     #cprint(ctx.args)

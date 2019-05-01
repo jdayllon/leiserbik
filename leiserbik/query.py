@@ -1,5 +1,26 @@
-from leiserbik import *
 import operator
+
+from leiserbik import *
+from leiserbik.borg import Borg
+
+
+class TwitterQueryStatus(Borg):
+    def get(self, k):
+        if k in self._state:
+            return self._state[k]
+        else:
+            self._state[k] = []
+
+    def set(self, k, v):
+        self._state[k] = list_no_dupes(v)
+        return
+
+    def append(self, k, v):
+        if k in self._state:
+            self._state[k] = list_no_dupes(self._state[k] + v)
+        else:
+            self._state[k] = list_no_dupes(v)
+
 
 class TwitterQuery:
 

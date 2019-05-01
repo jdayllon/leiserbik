@@ -7,14 +7,15 @@ __email__ = 'jdayllon@gmail.com'
 __version__ = '0.1.0'
 
 
-from loguru import logger
-import arrow
-import re
 import os
-from fake_useragent import UserAgent
+import re
+
 import requests
+from fake_useragent import UserAgent
+from loguru import logger
 
 SHORT_DATE_FORMAT = 'YYYY-MM-DD'
+LONG_DATETIME_PATTERN = "YYYY-MM-DDTHH:mm:ss"
 
 
 REGEX_UPDATE_LINK = re.compile(r'(\/search\?q=.*\;prev_cursor=.*)"')
@@ -76,3 +77,10 @@ if "HTTPS_PROXY" in os.environ and "HTTP_PROXY" in os.environ:
         HTTP_PROXY = None
         HTTPS_PROXY = None
 
+
+def list_no_dupes(l):
+    return list(set(l))
+
+
+def union_lists_no_dupes(l1, l2):
+    return list(set(l2) + set(l1))
