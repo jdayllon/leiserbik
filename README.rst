@@ -26,7 +26,10 @@ Social network information extractor
 Features
 --------
 
-* Extracts info from Twitter Web (mobile version) and API
+* Extracts info from Twitter Web (mobile version) and API bypassing 3200 statuses limit from Twitter API getting statuses from mobile web.
+* Allows two modes watch and capture:
+   * Watch mode only outputs Status IDs
+   * Capture mode gets status info and generate a JSON with similar structure of Twitter API response
 
 Credits
 -------
