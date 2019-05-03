@@ -1,5 +1,6 @@
 import operator
 
+import arrow
 from pypeln import asyncio_task as aio
 from pypeln import thread as th
 
@@ -66,8 +67,6 @@ def iter_rawquery(query: str, end_date:str=arrow.get().shift(days=-15).format(SH
 
         yield cur_new_statuses
 
-    return
-
 
 def user_activity(user:str, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
     logger.info(f"💬 Retrieving activiy {user}")
@@ -119,7 +118,7 @@ def hashtags(hashtags, type_operator = operator.or_, start_date:str=arrow.get().
     logger.info(f"💬 Retrieved hashtag {query_hashtag} statuses: {len(results)}")
 
 def geolocation(lat,lon, radius, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
-    logger.info(f"🗺 Retrieving for [LAT:{lan}, LON:{lon},  Radious:{radius}]")
-    results = rawquery(f"geocode:{lan},{lon},{lon}", start_date, end_date)
-    logger.info(f"🗺💬 Retrieved for locaton [LAT:{lan}, LON:{lon},  Radious:{radius}] statuses : {len(results)}")
+    logger.info(f"🗺 Retrieving for [LAT:{lat}, LON:{lon},  Radious:{radius}]")
+    results = rawquery(f"geocode:{lat},{lon},{lon}", start_date, end_date)
+    logger.info(f"🗺💬 Retrieved for locaton [LAT:{lat}, LON:{lon},  Radious:{radius}] statuses : {len(results)}")
     return results
