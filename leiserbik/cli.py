@@ -9,6 +9,7 @@ from slugify import slugify
 
 from leiserbik import *
 from leiserbik import watcher, capturer
+import arrow
 
 cprint = pprint.PrettyPrinter(indent=4).pprint
 

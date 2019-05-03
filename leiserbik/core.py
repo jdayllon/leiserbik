@@ -1,6 +1,7 @@
 import copy
 import time
 import urllib
+import arrow
 
 from arrow import Arrow
 from bs4 import BeautifulSoup, Tag
@@ -85,7 +86,11 @@ def __get_statuses(decoded_content):
     statuses = []
     for x in REGEX_STATUS_LINK_VALUES.findall(decoded_content):
         try:
-            statuses += [int(x)]
+            if type(x) is list:
+                for y in x:
+                    statuses += [int(y)]
+            else:
+                statuses += [int(x)]
         except:
             logger.error(f"🚨 Converting to integer: {x}")
 
