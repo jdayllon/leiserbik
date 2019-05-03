@@ -42,6 +42,9 @@ def __generate_search_url_by_day(query: str, date: Arrow):
     return search_url
 
 
+def _session_get_requests(url: str):
+    return __session_get_request(requests.Session(), url)
+
 def __session_get_request(session:Session, url:str):
     #session.headers.update({'User-Agent': GENERATED_USER_AGENT})
 
@@ -58,7 +61,8 @@ def __session_get_request(session:Session, url:str):
 def __session_get_rated_requests(session:Session, url:str):
     logger.trace(f"👮‍Rate limited GET request: {url}")
     try:
-        return session.get(url)
+        response = session.get(url)
+        return response
     except:
         logger.warning(f"🚨 Fail on GET request - Retry on 30s: {url}")
         time.sleep(10)

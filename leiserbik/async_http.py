@@ -7,10 +7,9 @@ from leiserbik import *
 async def _fetch(url, session):
     header = {"User:Agent": GENERATED_USER_AGENT}
 
-    # import ipdb; ipdb.set_trace()
     if 'ROTATE_HTTP_PROXY' in globals() and ROTATE_HTTP_PROXY is not None:
         logger.debug("🌐 Async Proxy Enabled")
-        proxy = ROTATE_HTTP_PROXY
+        proxy = f'http://{ROTATE_HTTP_PROXY}'
     else:
         logger.debug("🛑 Async Proxy NOT Enabled")
         proxy = None

@@ -39,8 +39,8 @@ if "ROTATE_HTTPS_PROXY" in os.environ and "ROTATE_HTTP_PROXY" in os.environ:
     ROTATE_HTTP_PROXY = os.environ["ROTATE_HTTP_PROXY"]
 
     proxies = {
-        'http': f'http://{ROTATE_HTTP_PROXY}',
-        'https': f'http://{ROTATE_HTTPS_PROXY}',
+        'http': f'{ROTATE_HTTP_PROXY}',
+        'https': f'{ROTATE_HTTPS_PROXY}',
     }
 
     empty_proxies = {
@@ -58,6 +58,7 @@ if "ROTATE_HTTPS_PROXY" in os.environ and "ROTATE_HTTP_PROXY" in os.environ:
             logger.warning("🚨 Proxy fail")
             ROTATE_HTTP_PROXY = None
             ROTATE_HTTPS_PROXY = None
+
 
         res_wo_proxy_content = requests.get("https://api.ipify.org?format=text", proxies=empty_proxies).content.decode('utf-8')
         logger.info(f"🌐 Ip without proxy = {res_wo_proxy_content}")

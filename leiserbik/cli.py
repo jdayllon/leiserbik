@@ -83,10 +83,10 @@ def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(
 
     if ctx.obj['WRITE'] and ctx.obj['STREAM']:
         operation = capturer
-        filename = f"{WORK_DIR}{arrow.get().format(LONG_DATETIME_PATTERN)}-STREAM-{slugify(query)}.lst"
+        filename = f"{WORK_DIR}{arrow.get().format(LONG_DATETIME_PATTERN)}-STREAM-{slugify(query)}.json"
     elif ctx.obj['WRITE'] and not ctx.obj['STREAM']:
         operation = capturer
-        filename = f"{WORK_DIR}{arrow.get().format(LONG_DATETIME_PATTERN)}-STATIC-{slugify(query)}.lst"
+        filename = f"{WORK_DIR}{arrow.get().format(LONG_DATETIME_PATTERN)}-STATIC-{slugify(query)}.json"
     else:
         operation = watcher
 

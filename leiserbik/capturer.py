@@ -11,7 +11,6 @@ from leiserbik.core import __generate_search_url_by_range, \
     _read_statuses, _get_branch_walk
 from leiserbik.query import TwitterQuery
 
-
 def query(tq: TwitterQuery):
     cur_query = tq.query(with_dates=False)
     logger.debug(f"Obtainer Twitter Query Object with query 🔎 {cur_query}")
@@ -48,7 +47,6 @@ def rawquery(query: str,
     logger.info(f"Getted {len(results)} 💬")
 
     return results
-
 
 def iter_rawquery(query: str, end_date: str = arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
     # if we are iterating, start_date is "now"
