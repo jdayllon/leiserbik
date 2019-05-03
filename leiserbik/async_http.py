@@ -1,17 +1,22 @@
-from leiserbik import *
-from aiohttp import ClientSession, TCPConnector, ServerDisconnectedError
+from aiohttp import ClientSession, TCPConnector
 from pypeln import asyncio_task as aio
+
+from leiserbik import *
+
 
 async def _fetch(url, session):
     header = {"User:Agent": GENERATED_USER_AGENT}
 
-    if 'HTTPS_PROXY' in globals():
-        proxy = "http://127.0.0.1:5566"
+    # import ipdb; ipdb.set_trace()
+    if 'ROTATE_HTTP_PROXY' in globals() and ROTATE_HTTP_PROXY is not None:
+        logger.debug("🌐 Async Proxy Enabled")
+        proxy = ROTATE_HTTP_PROXY
     else:
+        logger.debug("🛑 Async Proxy NOT Enabled")
         proxy = None
 
     async with session.get(url, headers=header ,proxy=proxy ) as response:
-        logger.debug(f"Async Fetching 🌐: {url}")
+        logger.debug(f"🌐 Async Fetching: {url}")
         response = await response.read()
         return response
 

@@ -19,16 +19,12 @@ def not_in_list(l1, l2):
         l2 = []
 
     if l1 == [] and l2 != []:
-        # print (1)
         return list_no_dupes(l2)
     elif l1 != [] and l2 == []:
-        # print(2)
         return list_no_dupes(l1)
     elif l1 == [] and l2 == []:
-        # print(3)
         return []
     else:
-        # print(4)
         return list(set(l2) - set(l1))
 
 def __generate_search_url_by_day(query: str, date: Arrow):
@@ -71,7 +67,7 @@ def __session_post_request(session:Session, url):
     session.headers.update({'User-Agent': GENERATED_USER_AGENT})
 
     if 'HTTPS_PROXY' in globals():
-        session.proxies = {"http": '127.0.0.1:5566', "https": '127.0.0.1:5566'}
+        session.proxies = {"http": ROTATE_HTTP_PROXY, "https": ROTATE_HTTPS_PROXY}
         return session.get(url)
     else:
         session.proxies = {"http": None, "https": None}
@@ -86,7 +82,14 @@ def __session_post_rated_requests(session:Session, url:str):
 
 def __get_statuses(decoded_content):
     #return [f"https://mobile.twitter.com{path}" for path in REGEX_STATUS_LINK.findall(decoded_content)]
-    return [int(x) for x in REGEX_STATUS_LINK_VALUES.findall(decoded_content)]
+    statuses = []
+    for x in REGEX_STATUS_LINK_VALUES.findall(decoded_content):
+        try:
+            statuses += [int(x)]
+        except:
+            logger.error(f"🚨 Converting to integer: {x}")
+
+    return statuses
 
 def __get_next_page(decoded_content, session, REGEX_COMPILED_PATTERN):
     next_pages = [f"https://mobile.twitter.com{path}" for path in REGEX_COMPILED_PATTERN.findall(decoded_content)]
@@ -220,7 +223,11 @@ def _get_branch_walk(params):
         contents += [cur_content]
         cur_statuses = __get_statuses(cur_content)
 
-        new_statuses = not_in_list(twqstatus.get(query_from_content), cur_statuses)
+        try:
+            new_statuses = not_in_list(twqstatus.get(query_from_content), cur_statuses)
+        except:
+            new_statuses = []
+            logger.warning("🚨Error on content parameters, probably partial page download")
 
         if len(cur_statuses) == 0:
             logger.debug(f"💬 No more statuses found 😅 |{query_from_content} -- Branch: {branch}|")

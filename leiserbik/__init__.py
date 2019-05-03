@@ -11,8 +11,6 @@ import os
 import re
 
 import requests
-import arrow
-
 from fake_useragent import UserAgent
 from loguru import logger
 
@@ -35,14 +33,14 @@ logger.debug(f"Using UserAngent {GENERATED_USER_AGENT} 🕵‍")
 MAX_WORKERS = 3
 
 ## Rotating Proxy
-if "HTTPS_PROXY" in os.environ and "HTTP_PROXY" in os.environ:
+if "ROTATE_HTTPS_PROXY" in os.environ and "ROTATE_HTTP_PROXY" in os.environ:
     logger.info("Proxy envs dectected 🚇")
-    HTTPS_PROXY = os.environ["HTTPS_PROXY"]
-    HTTP_PROXY = os.environ["HTTP_PROXY"]
+    ROTATE_HTTPS_PROXY = os.environ["ROTATE_HTTPS_PROXY"]
+    ROTATE_HTTP_PROXY = os.environ["ROTATE_HTTP_PROXY"]
 
     proxies = {
-        'http': f'http://{HTTP_PROXY}',
-        'https': f'http://{HTTPS_PROXY}',
+        'http': f'http://{ROTATE_HTTP_PROXY}',
+        'https': f'http://{ROTATE_HTTPS_PROXY}',
     }
 
     empty_proxies = {
@@ -51,6 +49,15 @@ if "HTTPS_PROXY" in os.environ and "HTTP_PROXY" in os.environ:
     }
 
     try:
+
+        def __fail_proxy_env():
+
+            global ROTATE_HTTPS_PROXY
+            global ROTATE_HTTP_PROXY
+
+            logger.warning("🚨 Proxy fail")
+            ROTATE_HTTP_PROXY = None
+            ROTATE_HTTPS_PROXY = None
 
         res_wo_proxy_content = requests.get("https://api.ipify.org?format=text", proxies=empty_proxies).content.decode('utf-8')
         logger.info(f"🌐 Ip without proxy = {res_wo_proxy_content}")
@@ -67,18 +74,27 @@ if "HTTPS_PROXY" in os.environ and "HTTP_PROXY" in os.environ:
                     MAX_WORKERS = int(os.environ["MAX_WORKERS"])
 
             else:
-                logger.warning("Proxy fail 🚨")
-                HTTP_PROXY = None
-                HTTPS_PROXY = None
+                __fail_proxy_env()
         else:
-            logger.warning("Proxy fail 🚨")
-            HTTP_PROXY = None
-            HTTPS_PROXY = None
+            __fail_proxy_env()
     except:
-        logger.warning("Proxy fail 🚨")
-        HTTP_PROXY = None
-        HTTPS_PROXY = None
+        __fail_proxy_env()
 
+## Workdir
+if "WORK_DIR" in os.environ:
+    logger.info("📁 Checking work directory")
+    WORK_DIR = os.environ["WORK_DIR"]
+
+    if WORK_DIR[-1] != '/':
+        WORK_DIR += "/"
+
+    if os.path.isdir(WORK_DIR):
+        logger.info("📁 Work directory checked 👌")
+    else:
+        logger.info("📁 Work directory fail 😡")
+        WORK_DIR = './'
+else:
+    WORK_DIR = './'
 
 def list_no_dupes(l):
     return list(set(l))

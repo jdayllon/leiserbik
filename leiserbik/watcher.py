@@ -13,12 +13,12 @@ from leiserbik.query import TwitterQuery
 def query(tq : TwitterQuery ):
 
     cur_query = tq.query(with_dates=False)
-    logger.debug(f"Obtainer Twitter Query Object with query 🔎 {cur_query}")
+    logger.debug(f"🔎 Obtainer Twitter Query Object with query {cur_query}")
     return rawquery(cur_query, tq.start_date, tq.end_date)
 
 def iter_query(tq : TwitterQuery ):
     cur_query = tq.query(with_dates=False)
-    logger.debug(f"Obtainer Twitter Query Object with query 🔎 {cur_query}")
+    logger.debug(f"🔎 Obtainer Twitter Query Object with query {cur_query}")
     return iter_rawquery(cur_query, tq.end_date)
 
 
@@ -30,7 +30,7 @@ def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
     init_date = arrow.get(start_date)
     finish_date = arrow.get(end_date)
 
-    logger.info("Scrapping 🐦 with:[%s] From 🗓️:[%s] ➡️ To 🗓️:[%s]" % (query, init_date.format('YYYY-MM-DD'),
+    logger.info("🐦 Scrapping with:[%s] From 🗓️:[%s] ➡️ To 🗓️:[%s]" % (query, init_date.format('YYYY-MM-DD'),
                                                                          finish_date.format('YYYY-MM-DD')))
 
     # Create day urls
@@ -41,9 +41,10 @@ def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
     stage_results = th.flat_map(_get_branch_walk, stage_results, workers=15)
     stage_results = th.flat_map(__get_statuses, stage_results, workers=15)
 
-    results = list_no_dupes(stage_results)
+    results = list(stage_results)
+    results = list_no_dupes(results)
 
-    logger.info(f"Getted {len(results)} 💬")
+    logger.info(f"💬 Getted {len(results)}")
 
     return results
 
@@ -60,7 +61,7 @@ def iter_rawquery(query: str, end_date:str=arrow.get().shift(days=-15).format(SH
         cur_date = arrow.get().format(SHORT_DATE_FORMAT)
         cur_statuses = rawquery(query, cur_date, cur_date)
         cur_new_statuses =  not_in_list(all_status_until_now, cur_statuses)
-        logger.info(f"Found: {len(cur_statuses)} 💬")
+        logger.info(f"💬 Found: {len(cur_statuses)}")
         all_status_until_now += cur_new_statuses
 
         yield cur_new_statuses
@@ -69,28 +70,28 @@ def iter_rawquery(query: str, end_date:str=arrow.get().shift(days=-15).format(SH
 
 
 def user_activity(user:str, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
-    logger.info(f"Retrieving activiy {user} 💬 ")
+    logger.info(f"💬 Retrieving activiy {user}")
     results = rawquery(f"from:{user} OR to:{user} OR on:{user}", start_date, end_date)
-    logger.info(f"Retrieved activiy {user} statuses: {len(results)} 💬 ")
+    logger.info(f"💬 Retrieved activiy {user} statuses: {len(results)}")
     return results
 
 
 def iter_user_activity(user: str, end_date: str = arrow.get().shift(days=-1).format(SHORT_DATE_FORMAT)):
-    logger.info(f"Retrieving activiy {user} 💬 ")
+    logger.info(f"💬 Retrieving activiy {user}")
     return iter_rawquery(f"from:{user} OR to:{user} OR on:{user}", end_date)
 
 
 
 def user_by_id(user:str, max_id: int = 0):
-    logger.info(f"Retrieving info {user} 💬 ")
+    logger.info(f"💬 Retrieving info {user}")
     results = _get_user_statuses(user, max_id)
-    logger.info(f"Retrieved {user} statuses: {len(results)} 💬 ")
+    logger.info(f"💬 Retrieved {user} statuses: {len(results)}")
     return results
 
 def user_by_query(user:str, max_id: int = 0):
-    logger.info(f"Retrieving activiy {user} 💬 ")
+    logger.info(f"💬 Retrieving activiy {user}")
     results = rawquery(f"from:{user}", arrow.get().format(SHORT_DATE_FORMAT), end_date =arrow.get().shift(months=-15))
-    logger.info(f"Retrieved activiy {user} statuses: {len(results)} 💬 ")
+    logger.info(f"💬 Retrieved activiy {user} statuses: {len(results)}")
     return results
 
 def hashtag(hashtag, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
@@ -100,7 +101,7 @@ def hashtag(hashtag, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_d
     logger.info(f"Querying for {query_hashtag}")
 
     results = rawquery(query_hashtag, start_date, end_date)
-    logger.info(f"Retrieved hashtag {query_hashtag} statuses: {len(results)} 💬 ")
+    logger.info(f"💬 Retrieved hashtag {query_hashtag} statuses: {len(results)}")
 
 def hashtags(hashtags, type_operator = operator.or_, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
 
@@ -115,10 +116,10 @@ def hashtags(hashtags, type_operator = operator.or_, start_date:str=arrow.get().
     logger.info(f"Querying for '{query_hashtag}'")
 
     results = rawquery(query_hashtag, start_date, end_date)
-    logger.info(f"Retrieved hashtag {query_hashtag} statuses: {len(results)} 💬 ")
+    logger.info(f"💬 Retrieved hashtag {query_hashtag} statuses: {len(results)}")
 
 def geolocation(lat,lon, radius, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
-    logger.info(f"Retrieving for [LAT:{lan}, LON:{lon},  Radious:{radius}] 🗺 ")
+    logger.info(f"🗺 Retrieving for [LAT:{lan}, LON:{lon},  Radious:{radius}]")
     results = rawquery(f"geocode:{lan},{lon},{lon}", start_date, end_date)
-    logger.info(f"Retrieved for locaton [LAT:{lan}, LON:{lon},  Radious:{radius}] 🗺 statuses : {len(results)} 💬 ")
+    logger.info(f"🗺💬 Retrieved for locaton [LAT:{lan}, LON:{lon},  Radious:{radius}] statuses : {len(results)}")
     return results

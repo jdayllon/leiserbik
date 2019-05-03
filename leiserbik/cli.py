@@ -5,6 +5,7 @@ import pprint
 import sys
 
 import click
+from slugify import slugify
 
 from leiserbik import *
 from leiserbik import watcher, capturer
@@ -72,26 +73,63 @@ def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(
 
     logger.info("Running Query")
 
+    global WORK_DIR
+
     if query is None and len(ctx.args) == 1:
         query = ctx.args[0]
 
-    if ctx.obj['WRITE']:
+    filename = None
+
+    if ctx.obj['WRITE'] and ctx.obj['STREAM']:
         operation = capturer
+        filename = f"{WORK_DIR}{arrow.get().format(LONG_DATETIME_PATTERN)}-STREAM-{slugify(query)}.lst"
+    elif ctx.obj['WRITE'] and not ctx.obj['STREAM']:
+        operation = capturer
+        filename = f"{WORK_DIR}{arrow.get().format(LONG_DATETIME_PATTERN)}-STATIC-{slugify(query)}.lst"
     else:
         operation = watcher
 
     if ctx.obj['STREAM']:
         counter = 0
-        for cur_statuses in operation.iter_rawquery(query, end_date=end_date):
-            logger.info(f"Iteration: {counter} | Elements {len(cur_statuses)}")
-            for cur_status in cur_statuses:
-                cprint(cur_status)
-            counter += 1
+
+        if filename is not None:
+            logger.info(f"💾 Opening {filename} for streaming output")
+            with open(filename, 'w') as f:
+                for cur_statuses in operation.iter_rawquery(query, end_date=end_date):
+                    logger.info(f"🚚 Iteration: {counter} | Elements {len(cur_statuses)}")
+                    for cur_status in cur_statuses:
+                        print(cur_status)
+                        sys.stdout.flush()
+                        f.write(f"{cur_status}\n")
+                        f.flush()
+                    counter += 1
+        else:
+            for cur_statuses in operation.iter_rawquery(query, end_date=end_date):
+                logger.info(f"🚚 Iteration: {counter} | Elements {len(cur_statuses)}")
+                for cur_status in cur_statuses:
+                    cprint(cur_status)
+                    sys.stdout.flush()
+                counter += 1
+
     else:
 
-        cur_statuses = watcher.rawquery(query)
-        for cur_status in cur_statuses:
-            cprint(cur_status)
+        if filename is not None:
+            logger.info(f"💾 Opening {filename}")
+            with open(filename, 'w') as f:
+                cur_statuses = watcher.rawquery(query)
+                with open(filename, 'w') as f:
+                    for cur_status in cur_statuses:
+                        cprint(cur_status)
+                        sys.stdout.flush()
+                        f.write(f"{cur_status}\n")
+                        f.flush()
+            logger.info(f"💾 Closing {filename}")
+
+        else:
+            cur_statuses = watcher.rawquery(query)
+            for cur_status in cur_statuses:
+                cprint(cur_status)
+                sys.stdout.flush()
 
     #cprint(dir(ctx.args))
     #cprint(ctx.args)
