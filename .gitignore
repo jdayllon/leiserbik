@@ -104,4 +104,9 @@ ENV/
 # mypy
 .mypy_cache/
 
+# idea
+.idea
+
 run.py
+
+
