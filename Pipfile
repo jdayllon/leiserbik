@@ -16,16 +16,22 @@ twine = "*"
 twitter = "*"
 leiserbik = {editable = true,path = "."}
 docutils = "*"
+ipdb = "*"
 
 [packages]
-click = "*"
 loguru = "*"
 arrow = "*"
 pypeln = "*"
-requests = "*"
+requests = {extras = ["socks"],version = "*"}
 aiohttp = "*"
 ratelimit = "*"
 twitter = "*"
 fake-useragent = "*"
 bs4 = "*"
 scalpl = "*"
+python-slugify = "*"
+leiserbik = {editable = true,path = "."}
+click = "==6.7"
+kafka-python = "*"
+faust = {extras = ["rockdb"],version = "*"}
+iteration-utilities = "*"
