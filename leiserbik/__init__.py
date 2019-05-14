@@ -13,6 +13,7 @@ import re
 import requests
 from fake_useragent import UserAgent
 from loguru import logger
+from iteration_utilities import unique_everseen
 
 SHORT_DATE_FORMAT = 'YYYY-MM-DD'
 LONG_DATETIME_PATTERN = "YYYY-MM-DDTHH:mm:ss"
@@ -25,6 +26,10 @@ REGEX_STATUS_LINK_VALUES = re.compile(r'\/.*\/status\/(\d*)')
 REGEX_GET_QUERY = re.compile(r'id=\"q\"\sname=\"q\"\stype=\"text\"\svalue=\"(.*)\"')
 REGEX_USER_NEXT_LINK = re.compile(r'<a href=\"(\/.*\?max_id=\d*)\"')
 REGEX_NOJS_ROUTER = re.compile(r'\"(https:\/\/mobile\.twitter\.com\/i\/nojs_router\?path=.*)\"')
+
+LEISERBIK_TOPIC_STATUS_ID = "leiserbik_id"
+LEISERBIK_TOPIC_STATUS_ID_WEB = "leiserbik_web"
+LEISERBIK_TOPIC_STATUS_ID_API = "leiserbik_api"
 
 
 GENERATED_USER_AGENT = UserAgent().chrome
@@ -98,8 +103,8 @@ else:
     WORK_DIR = './'
 
 def list_no_dupes(l):
-    return list(set(l))
+    return list(unique_everseen(l))
 
 
 def union_lists_no_dupes(l1, l2):
-    return list(set(l2) + set(l1))
+    return list(unique_everseen(l2) + unique_everseen(l1))

@@ -7,7 +7,7 @@ from pypeln import thread as th
 from leiserbik import *
 from leiserbik.async_http import fetch_all
 from leiserbik.core import __generate_search_url_by_range, _get_page_branches, __get_statuses, _get_user_statuses, \
-    list_no_dupes, not_in_list, _get_branch_walk, _session_get_requests
+    list_no_dupes, not_in_list, _get_branch_walk, _session_get_requests, _read_statuses
 from leiserbik.query import TwitterQuery
 
 
@@ -25,7 +25,7 @@ def iter_query(tq : TwitterQuery ):
 
 def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT),
              end_date: str = arrow.get().shift(days=-15).
-             format(SHORT_DATE_FORMAT)):
+             format(SHORT_DATE_FORMAT), hydrate: int=0):
 
     logger.debug("Converting dates from string")
     init_date = arrow.get(start_date)
@@ -38,10 +38,16 @@ def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
     urls = __generate_search_url_by_range(query, init_date, finish_date)
 
     stage_results = fetch_all(urls)
-    stage_results = aio.flat_map(_get_page_branches, stage_results, workers=15)
-    stage_results = th.flat_map(_get_branch_walk, stage_results, workers=15)
-    stage_results = th.flat_map(__get_statuses, stage_results, workers=15)
+    stage_results = aio.flat_map(_get_page_branches, stage_results, workers=MAX_WORKERS)
+    stage_results = th.flat_map(_get_branch_walk, stage_results, workers=MAX_WORKERS)
+    if hydrate == 0:
+        stage_results = th.flat_map(__get_statuses, stage_results, workers=MAX_WORKERS)
+    elif hydrate == 1:
+        stage_results = th.flat_map(_read_statuses, stage_results, workers=MAX_WORKERS)
+    else:
+        raise NotImplementedError
 
+    # List conversion executes pipeline
     results = list(stage_results)
     results = list_no_dupes(results)
 
@@ -49,23 +55,26 @@ def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
 
     return results
 
-def iter_rawquery(query: str, end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):
+def iter_rawquery(query: str, end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT), hydrate:int = 0):
 
     # if we are iterating, start_date is "now"
     start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
 
     # First call get everything until now
-    all_status_until_now = list_no_dupes(rawquery(query, start_date, end_date))
+    all_status_until_now = list_no_dupes(rawquery(query, start_date, end_date, hydrate=hydrate))
     yield all_status_until_now
 
     while True:
         cur_date = arrow.get().format(SHORT_DATE_FORMAT)
-        cur_statuses = rawquery(query, cur_date, cur_date)
-        cur_new_statuses =  not_in_list(all_status_until_now, cur_statuses)
-        logger.info(f"💬 Found: {len(cur_statuses)}")
-        all_status_until_now += cur_new_statuses
+        try:
+            cur_statuses = rawquery(query, cur_date, cur_date, hydrate=hydrate)
+            cur_new_statuses =  not_in_list(all_status_until_now, cur_statuses)
+            logger.info(f"💬 Found: {len(cur_statuses)}")
+            all_status_until_now += cur_new_statuses
 
-        yield cur_new_statuses
+            yield cur_new_statuses
+        except:
+            logger.warning(f"⚠️ Failing running query, will be a next iteration")
 
 
 def user_activity(user:str, start_date:str=arrow.get().format(SHORT_DATE_FORMAT), end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT)):

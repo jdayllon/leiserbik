@@ -2,7 +2,7 @@ import copy
 import time
 import urllib
 import arrow
-
+import json
 from arrow import Arrow
 from bs4 import BeautifulSoup, Tag
 from ratelimit import limits, sleep_and_retry
@@ -88,7 +88,8 @@ def __session_post_rated_requests(session:Session, url:str):
 def __get_statuses(decoded_content):
     #return [f"https://mobile.twitter.com{path}" for path in REGEX_STATUS_LINK.findall(decoded_content)]
     statuses = []
-    for x in REGEX_STATUS_LINK_VALUES.findall(decoded_content):
+    statuses_links = list_no_dupes(REGEX_STATUS_LINK_VALUES.findall(decoded_content))
+    for x in statuses_links:
         try:
             if type(x) is list:
                 for y in x:
@@ -96,7 +97,7 @@ def __get_statuses(decoded_content):
             else:
                 statuses += [int(x)]
         except:
-            logger.error(f"🚨 Converting to integer: {x}")
+            logger.warning(f"⚠️ Converting to integer: {x}")
 
     return statuses
 
@@ -292,6 +293,18 @@ def _get_status(id: int, session: Session = requests.Session()):
     else:
         return None
 
+def _get_status_web(id: int, session: Session = requests.Session()):
+    res = __session_get_request(session, f"https://www.twitter.com/twitter/status/{id}")
+
+    if res.status_code == 200:
+        return _read_statuses(res.content.decode('utf-8'))
+    elif res.status_code == 429:
+        time.sleep(10)
+        return _get_status(id, session)
+    else:
+        return None
+
+
 
 def _read_statuses(content: str):
     statuses_data = []
@@ -299,11 +312,23 @@ def _read_statuses(content: str):
     soup = BeautifulSoup(content, "html.parser")
     statuses = soup.find_all('table', {"class": "tweet"})
 
+    if len(statuses) == 0:
+        statuses = soup.find_all('div', {"class":"js-tweet-text-container"})
+
     for cur_tweet in statuses:
         cur_statuses_data = __read_status(cur_tweet)
         statuses_data += [cur_statuses_data]
 
     return statuses_data
+
+def __read_status_web(soup):
+    try:
+        cur_retweets = soup.find('li', {"class":"js-stat-retweets"}).find('a').find('strong').get_text()
+        cur_favorites = soup.find('li', {"class":"js-stat-favorites"})
+        logger.info("🔁 {status['id']} : {cur_retweets}")
+    except:
+        logger.warning(f"🚨 Fail getting retweets 🔁 from 🐦: {status['id']}")
+
 
 
 def __read_status(soup):
@@ -441,5 +466,6 @@ def __read_status(soup):
     except:
         logger.warning(f"🚨 Fail getting external urls from 🐦: {status['id']}")
 
-    return status.data
-    #return json.dumps(status.data, indent=4)
+
+    #return status.data
+    return json.dumps(status.data, indent=4)

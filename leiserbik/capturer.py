@@ -30,21 +30,21 @@ def rawquery(query: str,
     init_date = arrow.get(start_date)
     finish_date = arrow.get(end_date)
 
-    logger.info("Scrapping 🐦 with:[%s] From 🗓️:[%s] ➡️ To 🗓️:[%s]" % (query, init_date.format('YYYY-MM-DD'),
+    logger.info("🐦 Scrapping with:[%s] From 🗓️:[%s] ➡️ To 🗓️:[%s]" % (query, init_date.format('YYYY-MM-DD'),
                                                                          finish_date.format('YYYY-MM-DD')))
 
     # Create day urls
     urls = __generate_search_url_by_range(query, init_date, finish_date)
 
     stage_results = fetch_all(urls)
-    stage_results = aio.flat_map(_get_page_branches, stage_results, workers=15)
-    stage_results = th.flat_map(_get_branch_walk, stage_results, workers=15)
-    stage_results = th.flat_map(_read_statuses, stage_results, workers=15)
+    stage_results = aio.flat_map(_get_page_branches, stage_results, workers=MAX_WORKERS)
+    stage_results = th.flat_map(_get_branch_walk, stage_results, workers=MAX_WORKERS)
+    stage_results = th.flat_map(_read_statuses, stage_results, workers=MAX_WORKERS)
 
     # results = list_no_dupes(stage_results)
     results = list(stage_results)
 
-    logger.info(f"Getted {len(results)} 💬")
+    logger.info(f"💬 Captured {len(results)}")
 
     return results
 

@@ -14,7 +14,7 @@ async def _fetch(url, session):
         logger.debug("🛑 Async Proxy NOT Enabled")
         proxy = None
 
-    async with session.get(url, headers=header ,proxy=proxy ) as response:
+    async with session.get(url, headers=header ,proxy=proxy,  timeout=30 ) as response:
         logger.debug(f"🌐 Async Fetching: {url}")
         response = await response.read()
         return response
