@@ -7,6 +7,7 @@ from arrow import Arrow
 from bs4 import BeautifulSoup, Tag
 from ratelimit import limits, sleep_and_retry
 from requests import Session
+from requests_html import HTMLSession
 from scalpl import Cut
 
 from leiserbik import *
@@ -293,19 +294,6 @@ def _get_status(id: int, session: Session = requests.Session()):
     else:
         return None
 
-def _get_status_web(id: int, session: Session = requests.Session()):
-    res = __session_get_request(session, f"https://www.twitter.com/twitter/status/{id}")
-
-    if res.status_code == 200:
-        return _read_statuses(res.content.decode('utf-8'))
-    elif res.status_code == 429:
-        time.sleep(10)
-        return _get_status(id, session)
-    else:
-        return None
-
-
-
 def _read_statuses(content: str):
     statuses_data = []
 
@@ -321,15 +309,37 @@ def _read_statuses(content: str):
 
     return statuses_data
 
-def __read_status_web(soup):
-    try:
-        cur_retweets = soup.find('li', {"class":"js-stat-retweets"}).find('a').find('strong').get_text()
-        cur_favorites = soup.find('li', {"class":"js-stat-favorites"})
-        logger.info("🔁 {status['id']} : {cur_retweets}")
-    except:
-        logger.warning(f"🚨 Fail getting retweets 🔁 from 🐦: {status['id']}")
+def __update_status_stats(id: int, session: Session = requests.Session()):
+    res = __session_get_request(session, f"https://twitter.com/twitter/status/{id}")
 
+    # Getting web standart version
+    if res.status_code == 200:
 
+        soup = BeautifulSoup(res.content.decode('utf-8'), "html.parser")
+
+        retweet_ele = soup.find('li', {"class":"js-stat-retweets"})
+        fav_ele = soup.find('li', {"class":"js-stat-favorites"})
+
+        if retweet_ele is not None:
+            cur_retweets = int(retweet_ele.find('a').find('strong').get_text())
+        else:
+            cur_retweets = 0
+        
+        if fav_ele is not None:
+            cur_favorites = fav_ele.find('a').find('strong').get_text()
+        else:
+            cur_favorites = 0
+
+        logger.info(f"🔁 Retweets for {id} : {cur_retweets}")
+        logger.info(f"❤️  Favs for {id} : {cur_favorites}")
+
+        return cur_retweets, cur_favorites
+
+    elif res.status_code == 429:
+        time.sleep(10)
+        return __update_status_stats(id, session)
+    else:
+        return None
 
 def __read_status(soup):
     status = Cut()
@@ -466,6 +476,12 @@ def __read_status(soup):
     except:
         logger.warning(f"🚨 Fail getting external urls from 🐦: {status['id']}")
 
+    try:
+        cur_retweets, cur_favs = __update_status_stats(id)
+        status['retweet_count'] = cur_retweets
+        status['favorite_count'] = cur_favs
+    except:
+        logger.warning(f"🚨 Fail getting RT and Favs from 🐦: {status['id']}")        
 
     #return status.data
     return json.dumps(status.data, indent=4)

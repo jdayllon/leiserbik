@@ -7,7 +7,7 @@ from pypeln import thread as th
 from leiserbik import *
 from leiserbik.async_http import fetch_all
 from leiserbik.core import __generate_search_url_by_range, _get_page_branches, __get_statuses, _get_user_statuses, \
-    list_no_dupes, not_in_list, _get_branch_walk, _session_get_requests, _read_statuses
+    list_no_dupes, not_in_list, _get_branch_walk, _session_get_requests, _read_statuses, __update_status_stats
 from leiserbik.query import TwitterQuery
 
 
