@@ -38,6 +38,9 @@ def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
     urls = __generate_search_url_by_range(query, init_date, finish_date)
 
     stage_results = fetch_all(urls)
+
+    MAX_WORKERS = 1
+
     stage_results = aio.flat_map(_get_page_branches, stage_results, workers=MAX_WORKERS)
     stage_results = th.flat_map(_get_branch_walk, stage_results, workers=MAX_WORKERS)
     if hydrate == 0:

@@ -60,6 +60,12 @@ def __session_get_request(session:Session, url:str):
 @sleep_and_retry
 @limits(calls=50, period=60)
 def __session_get_rated_requests(session:Session, url:str):
+    
+    #if '<built-in function id>' in f'{url}':
+    #    import ipdb ; ipdb.set_trace()
+        #import traceback
+        #logger.info(traceback.print_stack())
+
     logger.trace(f"👮‍Rate limited GET request: {url}")
     try:
         response = session.get(url)
@@ -310,6 +316,7 @@ def _read_statuses(content: str):
     return statuses_data
 
 def __update_status_stats(id: int, session: Session = requests.Session()):
+    
     res = __session_get_request(session, f"https://twitter.com/twitter/status/{id}")
 
     # Getting web standart version
@@ -477,7 +484,9 @@ def __read_status(soup):
         logger.warning(f"🚨 Fail getting external urls from 🐦: {status['id']}")
 
     try:
-        cur_retweets, cur_favs = __update_status_stats(id)
+        #if type(id) is not int:
+        #    import ipdb ; ipdb.set_trace()
+        cur_retweets, cur_favs = __update_status_stats(status['id'])
         status['retweet_count'] = cur_retweets
         status['favorite_count'] = cur_favs
     except:
