@@ -70,6 +70,8 @@ def __session_get_rated_requests(session:Session, url:str):
     try:
         response = session.get(url)
         return response
+    except KeyboardInterrupt:
+            raise           
     except:
         logger.warning(f"🚨 Fail on GET request - Retry on 30s: {url}")
         time.sleep(10)
@@ -103,6 +105,8 @@ def __get_statuses(decoded_content):
                     statuses += [int(y)]
             else:
                 statuses += [int(x)]
+        except KeyboardInterrupt:
+            raise                   
         except:
             logger.warning(f"⚠️ Converting to integer: {x}")
 
@@ -149,6 +153,8 @@ def  _get_page_branches(content):
     try:
         cur_decoded_content = content.decode('utf-8')
         session  = requests.Session()
+    except KeyboardInterrupt:
+            raise           
     except:
         return []
 
@@ -242,6 +248,8 @@ def _get_branch_walk(params):
 
         try:
             new_statuses = not_in_list(twqstatus.get(query_from_content), cur_statuses)
+        except KeyboardInterrupt:
+            raise               
         except:
             new_statuses = []
             logger.warning("🚨Error on content parameters, probably partial page download")
@@ -315,6 +323,28 @@ def _read_statuses(content: str):
 
     return statuses_data
 
+def _update_status_stats(status: Cut):
+    """Get from desktop web version stats about current status (RT and FAVs) 
+    
+    Arguments:
+        status {Cut} -- Current status in scalpl object
+    
+    Returns:
+        Cut -- Updated stats status
+    """
+
+    try:
+        #! TODO Implement a better version in parallalel or async
+        cur_retweets, cur_favs = __update_status_stats(status['id'])
+        status['retweet_count'] = cur_retweets
+        status['favorite_count'] = cur_favs
+    except KeyboardInterrupt:
+            raise           
+    except:
+        logger.warning(f"🚨 Fail getting RT and Favs from 🐦: {status['id']}")       
+
+    return json.dumps(status.data, indent=4)
+
 def __update_status_stats(id: int, session: Session = requests.Session()):
     
     res = __session_get_request(session, f"https://twitter.com/twitter/status/{id}")
@@ -366,12 +396,16 @@ def __read_status(soup):
     try:
         status['user.screen_name'] = soup.find('div', {"class": "username"}).get_text().replace('\n', '').strip()[
                                      1:]  # Omits @
+    except KeyboardInterrupt:
+        raise   
     except:
         logger.warning(f"🚨 Fail getting screen_name from 🐦: {status['id']}")
         status['user.screen_name'] = soup['href'].split('/')[1]
 
     try:
         status['user.name'] = soup.find('strong', {"class": "fullname"}).get_text()
+    except KeyboardInterrupt:
+            raise           
     except:
         logger.warning(f"🚨 Fail getting fullname from 🐦: {status['id']}")
 
@@ -397,6 +431,8 @@ def __read_status(soup):
                     'id_str': str(cur_mention['data-mentioned-user-id']),
                     'screen_name': cur_mention.get_text()[1:]  # Omit @
                 }]
+    except KeyboardInterrupt:
+            raise                   
     except:
         logger.warning(f"🚨 Fail getting user_mentions from 🐦: {status['id']}")
 
@@ -409,6 +445,8 @@ def __read_status(soup):
             cur_tweet_text = cur_tweet_text.get_text().lstrip()
 
         status['full_text'] = cur_tweet_text
+    except KeyboardInterrupt:
+            raise        
     except:
         logger.warning(f"🚨 Fail getting full_text from 🐦: {status['id']}")
 
@@ -432,7 +470,8 @@ def __read_status(soup):
             cur_tweet_date = arrow.get(cur_tweet_date, "D MMM YY").format(LONG_DATETIME_PATTERN)
 
         status['created_at'] = cur_tweet_date.format(LONG_DATETIME_PATTERN) + "Z"
-
+    except KeyboardInterrupt:
+            raise
     except:
         logger.warning(f"🚨 Fail getting created_at from 🐦: {status['id']}")
 
@@ -457,6 +496,8 @@ def __read_status(soup):
                 status['hashtags'] += [{
                     'text': cur_hashtag.get_text()[1:]  # Omits '#'
                 }]
+    except KeyboardInterrupt:
+            raise                
     except:
         logger.warning(f"🚨 Fail getting hashtags from 🐦: {status['id']}")
 
@@ -480,17 +521,11 @@ def __read_status(soup):
                     'url': cur_url['href'],
                     'expanded_url': cur_url['data-expanded-url'] if 'data-expanded-url' in cur_url else None,
                 }]
+    except KeyboardInterrupt:
+            raise
     except:
-        logger.warning(f"🚨 Fail getting external urls from 🐦: {status['id']}")
-
-    try:
-        #if type(id) is not int:
-        #    import ipdb ; ipdb.set_trace()
-        cur_retweets, cur_favs = __update_status_stats(status['id'])
-        status['retweet_count'] = cur_retweets
-        status['favorite_count'] = cur_favs
-    except:
-        logger.warning(f"🚨 Fail getting RT and Favs from 🐦: {status['id']}")        
+        logger.warning(f"🚨 Fail getting external urls from 🐦: {status['id']}") 
 
     #return status.data
-    return json.dumps(status.data, indent=4)
+    #return json.dumps(status.data, indent=4)
+    return status

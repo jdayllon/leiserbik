@@ -7,7 +7,7 @@ from pypeln import thread as th
 from leiserbik import *
 from leiserbik.async_http import fetch_all
 from leiserbik.core import __generate_search_url_by_range, _get_page_branches, __get_statuses, _get_user_statuses, \
-    list_no_dupes, not_in_list, _get_branch_walk, _session_get_requests, _read_statuses, __update_status_stats
+    list_no_dupes, not_in_list, _get_branch_walk, _session_get_requests, _read_statuses, __update_status_stats, _update_status_stats
 from leiserbik.query import TwitterQuery
 
 
@@ -39,14 +39,13 @@ def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
 
     stage_results = fetch_all(urls)
 
-    MAX_WORKERS = 1
-
     stage_results = aio.flat_map(_get_page_branches, stage_results, workers=MAX_WORKERS)
     stage_results = th.flat_map(_get_branch_walk, stage_results, workers=MAX_WORKERS)
     if hydrate == 0:
         stage_results = th.flat_map(__get_statuses, stage_results, workers=MAX_WORKERS)
     elif hydrate == 1:
         stage_results = th.flat_map(_read_statuses, stage_results, workers=MAX_WORKERS)
+        stage_results = th.flat_map(_update_status_stats, stage_results, workers=MAX_WORKERS)
     else:
         raise NotImplementedError
 
@@ -76,6 +75,8 @@ def iter_rawquery(query: str, end_date:str=arrow.get().shift(days=-15).format(SH
             all_status_until_now += cur_new_statuses
 
             yield cur_new_statuses
+        except KeyboardInterrupt:
+            raise
         except:
             logger.warning(f"⚠️ Failing running query, will be a next iteration")
 

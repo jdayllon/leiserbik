@@ -18,11 +18,12 @@ cprint = pprint.PrettyPrinter(indent=4).pprint
 @click.group()
 @click.option('-v', '--verbose', count=True)
 @click.option('-h', '--hydrate', count=True)
+@click.option('-u', '--update', count=True)
 @click.option('-s/-ns', '--stream/--no-stream', default=False)
 @click.option('-w/-nw', '--write/--no-write', default=False)
 @click.option('-k/-nk', '--kafka/--no-kafka', default=False)
 @click.pass_context
-def main(ctx, verbose, stream, write, kafka, hydrate):
+def main(ctx, verbose, stream, write, kafka, hydrate, update):
 
     if verbose == 0:
         logger.info("🕵 ‍Logger level: WARNING")
@@ -45,6 +46,8 @@ def main(ctx, verbose, stream, write, kafka, hydrate):
         logger.info("🌞 Only capture status id")
     elif hydrate == 1:
         logger.info("💧 Scrapping status mobile-web based data")
+    elif hydrate == 2:
+        logger.info("💧 Scrapping status web based data")
     else:
         logger.info("🌊 Status info from 🐦 API")
         raise NotImplementedError
@@ -115,7 +118,8 @@ def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(
     elif hydrate == 1:
         kafka_topic = LEISERBIK_TOPIC_STATUS_ID_WEB
     else:
-        raise NotImplementedError
+        kafka_topic = LEISERBIK_TOPIC_STATUS_ID_WEB
+        #raise NotImplementedError
 
     if ctx.obj['WRITE'] and ctx.obj['STREAM']:
         operation = capturer
