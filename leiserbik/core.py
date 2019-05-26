@@ -60,11 +60,6 @@ def __session_get_request(session:Session, url:str):
 @sleep_and_retry
 @limits(calls=50, period=60)
 def __session_get_rated_requests(session:Session, url:str):
-    
-    #if '<built-in function id>' in f'{url}':
-    #    import ipdb ; ipdb.set_trace()
-        #import traceback
-        #logger.info(traceback.print_stack())
 
     logger.trace(f"👮‍Rate limited GET request: {url}")
     try:
@@ -96,15 +91,25 @@ def __session_post_rated_requests(session:Session, url:str):
 
 def __get_statuses(decoded_content):
     #return [f"https://mobile.twitter.com{path}" for path in REGEX_STATUS_LINK.findall(decoded_content)]
+
+    def _get_base_status(id:int):
+        status = Cut()
+        status['@data_source'] = 'https://mobile.twitter.com'
+        status['id'] = id
+        status['id_str'] = str(id)
+        status['updated_at'] = arrow.utcnow().format(LONG_DATETIME_PATTERN) + "Z"
+
+        return status
+
     statuses = []
     statuses_links = list_no_dupes(REGEX_STATUS_LINK_VALUES.findall(decoded_content))
     for x in statuses_links:
         try:
             if type(x) is list:
                 for y in x:
-                    statuses += [int(y)]
+                    statuses += [_get_base_status(int(y))]
             else:
-                statuses += [int(x)]
+                statuses += [_get_base_status(int(x))]
         except KeyboardInterrupt:
             raise                   
         except:

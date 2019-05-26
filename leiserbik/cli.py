@@ -11,7 +11,8 @@ from leiserbik import *
 from leiserbik import watcher, capturer
 import arrow
 
-from kafka import KafkaProducer
+#from kafka import KafkaProducer
+from leiserbik.borg import Kakfa
 
 cprint = pprint.PrettyPrinter(indent=4).pprint
 
@@ -101,7 +102,9 @@ def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(
     logger.info("Running Query")
 
     if ctx.obj['KAFKA']:
-        kafka_producer = KafkaProducer(bootstrap_servers='127.0.0.1:9092')
+        #kafka_producer = KafkaProducer(bootstrap_servers='127.0.0.1:9092')
+        kafka_instance = Kakfa('127.0.0.1:9092')
+        kafka_producer = kafka_instance.producer
     else:
         kafka_producer = None
 
@@ -115,10 +118,13 @@ def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(
     hydrate = ctx.obj['HYDRATE']
     if hydrate == 0:
         kafka_topic = LEISERBIK_TOPIC_STATUS_ID
+        kafka_instance.topic = LEISERBIK_TOPIC_STATUS_ID
     elif hydrate == 1:
         kafka_topic = LEISERBIK_TOPIC_STATUS_ID_WEB
+        kafka_instance.topic = LEISERBIK_TOPIC_STATUS_ID_WEB
     else:
         kafka_topic = LEISERBIK_TOPIC_STATUS_ID_WEB
+        kafka_instance.topic = LEISERBIK_TOPIC_STATUS_ID_WEB
         #raise NotImplementedError
 
     if ctx.obj['WRITE'] and ctx.obj['STREAM']:
@@ -147,12 +153,14 @@ def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(
         else:
             for cur_statuses in operation.iter_rawquery(query, end_date=end_date, hydrate=hydrate):
                 logger.info(f"🚚 Iteration: {counter} | Elements {len(cur_statuses)}")
+
                 for cur_status in cur_statuses:
                     if kafka_producer is not None:
+                        pass
                         #import ipdb ; ipdb.set_trace()
-                        logger.debug(f"📧 Sending to Kafka [{kafka_topic}]: {cur_status}")
-                        future_requests = kafka_producer.send(kafka_topic, f'{cur_status}'.encode())
-                        future_response = future_requests.get(timeout=10)
+                        #logger.debug(f"📧 Sending to Kafka [{kafka_topic}]: {cur_status}")
+                        #future_requests = kafka_producer.send(kafka_topic, f'{cur_status}'.encode())
+                        #future_response = future_requests.get(timeout=10)
                         #logger.debug(f"📧 Sended to Kafka with response {future_response}")
                     else:
                         cprint(cur_status)
@@ -178,9 +186,10 @@ def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(
             cur_statuses = watcher.rawquery(query, hydrate=hydrate)
             for cur_status in cur_statuses:
                 if kafka_producer is not None:
-                    logger.debug(f"📧 Sending to Kafka [{kafka_topic}]: {cur_status}")
-                    future_requests = kafka_producer.send(kafka_topic, f'{cur_status}'.encode())
-                    future_response = future_requests.get(timeout=10)
+                    pass
+                    #logger.debug(f"📧 Sending to Kafka [{kafka_topic}]: {cur_status}")
+                    #future_requests = kafka_producer.send(kafka_topic, f'{cur_status}'.encode())
+                    #future_response = future_requests.get(timeout=10)
                     #logger.debug(f"📧 Sended to Kafka with response {future_response}")
                 else:
                     cprint(cur_status)

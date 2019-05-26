@@ -8,6 +8,7 @@ from leiserbik import *
 from leiserbik.async_http import fetch_all
 from leiserbik.core import __generate_search_url_by_range, _get_page_branches, __get_statuses, _get_user_statuses, \
     list_no_dupes, not_in_list, _get_branch_walk, _session_get_requests, _read_statuses, __update_status_stats, _update_status_stats
+from leiserbik.borg import Kakfa
 from leiserbik.query import TwitterQuery
 
 
@@ -25,7 +26,7 @@ def iter_query(tq : TwitterQuery ):
 
 def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT),
              end_date: str = arrow.get().shift(days=-15).
-             format(SHORT_DATE_FORMAT), hydrate: int=0):
+             format(SHORT_DATE_FORMAT), hydrate: int=0, kafka: bool = False):
 
     logger.debug("Converting dates from string")
     init_date = arrow.get(start_date)
@@ -45,9 +46,13 @@ def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
         stage_results = th.flat_map(__get_statuses, stage_results, workers=MAX_WORKERS)
     elif hydrate == 1:
         stage_results = th.flat_map(_read_statuses, stage_results, workers=MAX_WORKERS)
-        stage_results = th.flat_map(_update_status_stats, stage_results, workers=MAX_WORKERS)
+        stage_results = th.map(_update_status_stats, stage_results, workers=MAX_WORKERS)
     else:
         raise NotImplementedError
+
+    if kafka:
+        stage_results = th.map(Kakfa.send, stage_results, workers=MAX_WORKERS)
+
 
     # List conversion executes pipeline
     results = list(stage_results)
@@ -57,19 +62,19 @@ def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
 
     return results
 
-def iter_rawquery(query: str, end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT), hydrate:int = 0):
+def iter_rawquery(query: str, end_date:str=arrow.get().shift(days=-15).format(SHORT_DATE_FORMAT), hydrate:int = 0, kafka: bool = False):
 
     # if we are iterating, start_date is "now"
     start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
 
     # First call get everything until now
-    all_status_until_now = list_no_dupes(rawquery(query, start_date, end_date, hydrate=hydrate))
+    all_status_until_now = list_no_dupes(rawquery(query, start_date, end_date, hydrate=hydrate, kafka=kafka))
     yield all_status_until_now
 
     while True:
         cur_date = arrow.get().format(SHORT_DATE_FORMAT)
         try:
-            cur_statuses = rawquery(query, cur_date, cur_date, hydrate=hydrate)
+            cur_statuses = rawquery(query, cur_date, cur_date, hydrate=hydrate, kafka=kafka)
             cur_new_statuses =  not_in_list(all_status_until_now, cur_statuses)
             logger.info(f"💬 Found: {len(cur_statuses)}")
             all_status_until_now += cur_new_statuses
