@@ -38,7 +38,6 @@ class TwitterQuery:
         self._words = []
         self._operator = operator.or_
 
-
     @property
     def operator(self):
         return self._operator
@@ -53,13 +52,12 @@ class TwitterQuery:
         return self._screen_name
 
     @screen_name.setter
-    def screen_name(self, screen_name, screen_name_from = True, screen_name_to = False, screen_name_on = False ):
-        self._screen_name = screen_name.replace("#","")
+    def screen_name(self, screen_name, screen_name_from=True, screen_name_to=False, screen_name_on=False):
+        self._screen_name = screen_name.replace("#", "")
 
         self._screen_name_from = screen_name_from
         self._screen_name_to = screen_name_to
         self._screen_name_on = screen_name_on
-
 
     @property
     def geolocation(self):
@@ -82,7 +80,7 @@ class TwitterQuery:
         return self._hashtags
 
     @hashtags.setter
-    def hashtags(self,hashtags):
+    def hashtags(self, hashtags):
         self._hashtags = hashtags
 
     @property
@@ -97,7 +95,6 @@ class TwitterQuery:
         if type(date) is str:
             self._start_date = arrow.get(date, SHORT_DATE_FORMAT)
 
-
     @property
     def end_date(self):
         if self._end_date is None:
@@ -106,7 +103,7 @@ class TwitterQuery:
             return self._end_date.format(SHORT_DATE_FORMAT)
 
     @end_date.setter
-    def end_date(self,date):
+    def end_date(self, date):
         if type(date) is str:
             self._end_date = arrow.get(date, SHORT_DATE_FORMAT)
 
@@ -123,11 +120,10 @@ class TwitterQuery:
         return self._words
 
     @words.setter
-    def words(self,words):
+    def words(self, words):
         self._words = words
 
-
-    def query(self, with_dates = False):
+    def query(self, with_dates=False):
         query_terms = []
 
         if self._screen_name is not None:
@@ -144,7 +140,7 @@ class TwitterQuery:
             query_terms += [f"geocode:{self._geolocation}"]
 
         if len(self._location) > 0:
-            #near:"Gerena, España" within:15mi&src=typd
+            # near:"Gerena, España" within:15mi&src=typd
 
             location_refs = ",".join(self._location)
 

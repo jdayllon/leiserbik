@@ -1,19 +1,18 @@
 import copy
+import json
 import time
 import urllib
+
 import arrow
-import json
 from arrow import Arrow
 from bs4 import BeautifulSoup, Tag
-from loguru import logger
 from ratelimit import limits, sleep_and_retry
 from requests import Session
-from requests_html import HTMLSession
 from scalpl import Cut
 
 from leiserbik import *
 from leiserbik.borg import Kakfa
-from leiserbik.query import TwitterQueryStatus
+from leiserbik.twitter.query import TwitterQueryStatus
 
 
 def not_in_list(l1, l2):
@@ -29,8 +28,9 @@ def not_in_list(l1, l2):
     elif l1 == [] and l2 == []:
         return []
     else:
-        #return list(set(l2) - set(l1))
-        return union_lists_no_dupes(l2,l1)
+        # return list(set(l2) - set(l1))
+        return union_lists_no_dupes(l2, l1)
+
 
 def __generate_search_url_by_day(query: str, date: Arrow):
     """
@@ -49,8 +49,9 @@ def __generate_search_url_by_day(query: str, date: Arrow):
 def _session_get_requests(url: str):
     return __session_get_request(requests.Session(), url)
 
-def __session_get_request(session:Session, url:str):
-    #session.headers.update({'User-Agent': GENERATED_USER_AGENT})
+
+def __session_get_request(session: Session, url: str):
+    # session.headers.update({'User-Agent': GENERATED_USER_AGENT})
 
     if 'HTTPS_PROXY' in globals():
         session.proxies = {"http": '127.0.0.1:5566', "https": '127.0.0.1:5566'}
@@ -62,20 +63,20 @@ def __session_get_request(session:Session, url:str):
 
 @sleep_and_retry
 @limits(calls=50, period=60)
-def __session_get_rated_requests(session:Session, url:str):
-
+def __session_get_rated_requests(session: Session, url: str):
     logger.trace(f"👮‍Rate limited GET request: {url}")
     try:
         response = session.get(url)
         return response
     except KeyboardInterrupt:
-            raise           
+        raise
     except:
         logger.warning(f"🚨 Fail on GET request - Retry on 30s: {url}")
         time.sleep(10)
         return session.get(url)
 
-def __session_post_request(session:Session, url):
+
+def __session_post_request(session: Session, url):
     session.headers.update({'User-Agent': GENERATED_USER_AGENT})
 
     if 'HTTPS_PROXY' in globals():
@@ -85,17 +86,18 @@ def __session_post_request(session:Session, url):
         session.proxies = {"http": None, "https": None}
         return __session_get_rated_requests(**locals())
 
+
 @sleep_and_retry
 @limits(calls=50, period=60)
-def __session_post_rated_requests(session:Session, url:str):
+def __session_post_rated_requests(session: Session, url: str):
     logger.trace(f"👮‍Rate limited POST request: {url}")
     return session.post(url)
 
 
 def __get_statuses(decoded_content):
-    #return [f"https://mobile.twitter.com{path}" for path in REGEX_STATUS_LINK.findall(decoded_content)]
+    # return [f"https://mobile.twitter.com{path}" for path in REGEX_STATUS_LINK.findall(decoded_content)]
 
-    def _get_base_status(id:int):
+    def _get_base_status(id: int):
         status = Cut()
         status['@data_source'] = 'https://mobile.twitter.com'
         status['id'] = id
@@ -114,11 +116,12 @@ def __get_statuses(decoded_content):
             else:
                 statuses += [_get_base_status(int(x))]
         except KeyboardInterrupt:
-            raise                   
+            raise
         except:
             logger.warning(f"⚠️ Converting to integer: {x}")
 
     return statuses
+
 
 def __get_next_page(decoded_content, session, REGEX_COMPILED_PATTERN):
     next_pages = [f"https://mobile.twitter.com{path}" for path in REGEX_COMPILED_PATTERN.findall(decoded_content)]
@@ -136,7 +139,8 @@ def __get_next_page(decoded_content, session, REGEX_COMPILED_PATTERN):
             return None
     return None
 
-def __generate_search_url_by_range(query: str, init_date:Arrow, finish_date:str=Arrow):
+
+def __generate_search_url_by_range(query: str, init_date: Arrow, finish_date: str = Arrow):
     urls = []
     cur_date = init_date
 
@@ -147,22 +151,22 @@ def __generate_search_url_by_range(query: str, init_date:Arrow, finish_date:str=
 
     return urls
 
-def  _get_page_branches(content):
 
+def _get_page_branches(content):
     def get_query_from_content(decode_content):
-        results =REGEX_GET_QUERY.findall(decode_content)
+        results = REGEX_GET_QUERY.findall(decode_content)
         if len(results) == 1:
             return results[0]
         else:
             return []
 
-    #twqstatus = TwitterQueryStatus()
+    # twqstatus = TwitterQueryStatus()
 
     try:
         cur_decoded_content = content.decode('utf-8')
-        session  = requests.Session()
+        session = requests.Session()
     except KeyboardInterrupt:
-            raise           
+        raise
     except:
         return []
 
@@ -173,11 +177,11 @@ def  _get_page_branches(content):
     while True:
 
         # cur_statuses = __get_statuses(cur_decoded_content)
-        #new_statuses = not_in_list(twqstatus.get(query_from_content), cur_statuses)
+        # new_statuses = not_in_list(twqstatus.get(query_from_content), cur_statuses)
 
-        data += [(cur_decoded_content , copy.deepcopy(session), branches, query_from_content)]
+        data += [(cur_decoded_content, copy.deepcopy(session), branches, query_from_content)]
 
-        #cur_decoded_content  = get_next_branch(cur_decoded_content , session)
+        # cur_decoded_content  = get_next_branch(cur_decoded_content , session)
         cur_decoded_content = __get_next_page(cur_decoded_content, session, REGEX_UPDATE_LINK)
 
         if cur_decoded_content is None:
@@ -188,8 +192,8 @@ def  _get_page_branches(content):
 
     return data
 
-def _get_user_statuses(user, max_id = 0):
 
+def _get_user_statuses(user, max_id=0):
     session = requests.Session()
     branch = 0
     query_from_content = user
@@ -197,13 +201,13 @@ def _get_user_statuses(user, max_id = 0):
         res = __session_get_request(session, f"https://mobile.twitter.com/{user}?max_id={max_id}")
     else:
         res = __session_get_request(session, f"https://mobile.twitter.com/{user}")
-    #res = session.get(f"https://mobile.twitter.com/{user}")
+    # res = session.get(f"https://mobile.twitter.com/{user}")
     statuses = []
 
     logger.debug(f"Requests: {res.url} |{res.status_code}|")
     if res.status_code == 200:
         cur_content = res.content.decode('utf-8')
-        #logger.info(cur_content)
+        # logger.info(cur_content)
     else:
         return statuses
 
@@ -213,12 +217,12 @@ def _get_user_statuses(user, max_id = 0):
 
         if len(cur_statuses) == 0:
             logger.debug(f"Statuses 💬 not Found 😅 |{user}|")
-            #nojs_post_url =REGEX_NOJS_ROUTER.findall(cur_content)[0].split('"')[0]
-            #logger.debug(f"POST Requests detected: {nojs_post_url}")
+            # nojs_post_url =REGEX_NOJS_ROUTER.findall(cur_content)[0].split('"')[0]
+            # logger.debug(f"POST Requests detected: {nojs_post_url}")
 
-            #cur_content = __session_post_request(session,nojs_post_url)
+            # cur_content = __session_post_request(session,nojs_post_url)
 
-            #if cur_content is None and type(cur_content) is bytes:
+            # if cur_content is None and type(cur_content) is bytes:
             #    cur_content = cur_content.decode('utf-8')
             #    logger.info(cur_content)
             #    cur_statuses_check = __get_statuses(cur_content)
@@ -256,7 +260,7 @@ def _get_branch_walk(params):
 
         try:
             new_statuses = not_in_list(twqstatus.get(query_from_content), cur_statuses)
-        #except KeyboardInterrupt:
+        # except KeyboardInterrupt:
         #    raise               
         except:
             new_statuses = []
@@ -280,7 +284,6 @@ def _get_branch_walk(params):
 
 
 def _get_branch_statuses(params):
-
     decoded_content = params[0]
     session = params[1]
     branch = params[2]
@@ -298,7 +301,8 @@ def _get_branch_statuses(params):
             return statuses
         else:
             statuses = list(set(cur_statuses + statuses))
-            logger.debug(f"Current content statuses found: {len(statuses)} 💬 |{query_from_content} -- Branch: {branch}|")
+            logger.debug(
+                f"Current content statuses found: {len(statuses)} 💬 |{query_from_content} -- Branch: {branch}|")
 
         cur_content = __get_next_page(cur_content, session, REGEX_NEXT_LINK)
 
@@ -316,6 +320,7 @@ def _get_status(id: int, session: Session = requests.Session()):
     else:
         return None
 
+
 def _read_statuses(content: str):
     statuses_data = []
 
@@ -323,13 +328,14 @@ def _read_statuses(content: str):
     statuses = soup.find_all('table', {"class": "tweet"})
 
     if len(statuses) == 0:
-        statuses = soup.find_all('div', {"class":"js-tweet-text-container"})
+        statuses = soup.find_all('div', {"class": "js-tweet-text-container"})
 
     for cur_tweet in statuses:
         cur_statuses_data = __read_status(cur_tweet)
         statuses_data += [cur_statuses_data]
 
     return statuses_data
+
 
 def _update_status_stats(status: dict):
     """Get from desktop web version stats about current status (RT and FAVs) 
@@ -342,19 +348,19 @@ def _update_status_stats(status: dict):
     """
 
     try:
-        #! TODO Implement a better version in parallalel or async
+        # ! TODO Implement a better version in parallalel or async
         cur_retweets, cur_favs = __update_status_stats(status['id'])
         status['retweet_count'] = cur_retweets
         status['favorite_count'] = cur_favs
     except KeyboardInterrupt:
-            raise           
+        raise
     except:
-        logger.warning(f"🚨 Fail getting RT and Favs from 🐦: {status['id']}")       
+        logger.warning(f"🚨 Fail getting RT and Favs from 🐦: {status['id']}")
 
     return json.dumps(status, indent=4)
 
+
 def __update_status_stats(id: int, session: Session = requests.Session()):
-    
     res = __session_get_request(session, f"https://twitter.com/twitter/status/{id}")
 
     # Getting web standart version
@@ -362,14 +368,14 @@ def __update_status_stats(id: int, session: Session = requests.Session()):
 
         soup = BeautifulSoup(res.content.decode('utf-8'), "html.parser")
 
-        retweet_ele = soup.find('li', {"class":"js-stat-retweets"})
-        fav_ele = soup.find('li', {"class":"js-stat-favorites"})
+        retweet_ele = soup.find('li', {"class": "js-stat-retweets"})
+        fav_ele = soup.find('li', {"class": "js-stat-favorites"})
 
         if retweet_ele is not None:
             cur_retweets = int(retweet_ele.find('a').find('strong').get_text())
         else:
             cur_retweets = 0
-        
+
         if fav_ele is not None:
             cur_favorites = fav_ele.find('a').find('strong').get_text()
         else:
@@ -385,6 +391,7 @@ def __update_status_stats(id: int, session: Session = requests.Session()):
         return __update_status_stats(id, session)
     else:
         return None
+
 
 def __read_status(soup):
     status = Cut()
@@ -405,7 +412,7 @@ def __read_status(soup):
         status['user.screen_name'] = soup.find('div', {"class": "username"}).get_text().replace('\n', '').strip()[
                                      1:]  # Omits @
     except KeyboardInterrupt:
-        raise   
+        raise
     except:
         logger.warning(f"🚨 Fail getting screen_name from 🐦: {status['id']}")
         status['user.screen_name'] = soup['href'].split('/')[1]
@@ -413,7 +420,7 @@ def __read_status(soup):
     try:
         status['user.name'] = soup.find('strong', {"class": "fullname"}).get_text()
     except KeyboardInterrupt:
-            raise           
+        raise
     except:
         logger.warning(f"🚨 Fail getting fullname from 🐦: {status['id']}")
 
@@ -440,7 +447,7 @@ def __read_status(soup):
                     'screen_name': cur_mention.get_text()[1:]  # Omit @
                 }]
     except KeyboardInterrupt:
-            raise                   
+        raise
     except:
         logger.warning(f"🚨 Fail getting user_mentions from 🐦: {status['id']}")
 
@@ -454,7 +461,7 @@ def __read_status(soup):
 
         status['full_text'] = cur_tweet_text
     except KeyboardInterrupt:
-            raise        
+        raise
     except:
         logger.warning(f"🚨 Fail getting full_text from 🐦: {status['id']}")
 
@@ -479,7 +486,7 @@ def __read_status(soup):
 
         status['created_at'] = cur_tweet_date.format(LONG_DATETIME_PATTERN) + "Z"
     except KeyboardInterrupt:
-            raise
+        raise
     except:
         logger.warning(f"🚨 Fail getting created_at from 🐦: {status['id']}")
 
@@ -505,7 +512,7 @@ def __read_status(soup):
                     'text': cur_hashtag.get_text()[1:]  # Omits '#'
                 }]
     except KeyboardInterrupt:
-            raise                
+        raise
     except:
         logger.warning(f"🚨 Fail getting hashtags from 🐦: {status['id']}")
 
@@ -530,17 +537,16 @@ def __read_status(soup):
                     'expanded_url': cur_url['data-expanded-url'] if 'data-expanded-url' in cur_url else None,
                 }]
     except KeyboardInterrupt:
-            raise
+        raise
     except:
-        logger.warning(f"🚨 Fail getting external urls from 🐦: {status['id']}") 
+        logger.warning(f"🚨 Fail getting external urls from 🐦: {status['id']}")
 
-    #return status.data
-    #return json.dumps(status.data, indent=4)
+        # return status.data
+    # return json.dumps(status.data, indent=4)
     return status.data
 
 
-def _send_kafka(cur_dict : dict, topic = None):
-
+def _send_kafka(cur_dict: dict, topic=None):
     logger.info("Going to send kafka")
 
     kafka = Kakfa()
