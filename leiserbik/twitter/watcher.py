@@ -7,8 +7,8 @@ from pypeln import thread as th
 from leiserbik import *
 from leiserbik.async_http import fetch_all
 from leiserbik.core import __generate_search_url_by_range, _get_page_branches, __get_statuses, _get_user_statuses, \
-    list_no_dupes, not_in_list, _get_branch_walk, _session_get_requests, _read_statuses, __update_status_stats, _update_status_stats
-from leiserbik.borg import Kakfa
+    list_no_dupes, not_in_list, _get_branch_walk, _session_get_requests, _read_statuses, __update_status_stats, \
+    _update_status_stats, _send_kafka
 from leiserbik.query import TwitterQuery
 
 
@@ -51,7 +51,7 @@ def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
         raise NotImplementedError
 
     if kafka:
-        stage_results = th.map(Kakfa.send, stage_results, workers=MAX_WORKERS)
+        stage_results = th.map(_send_kafka, stage_results, workers=MAX_WORKERS)
 
 
     # List conversion executes pipeline

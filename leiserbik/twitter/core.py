@@ -5,12 +5,14 @@ import arrow
 import json
 from arrow import Arrow
 from bs4 import BeautifulSoup, Tag
+from loguru import logger
 from ratelimit import limits, sleep_and_retry
 from requests import Session
 from requests_html import HTMLSession
 from scalpl import Cut
 
 from leiserbik import *
+from leiserbik.borg import Kakfa
 from leiserbik.query import TwitterQueryStatus
 
 
@@ -27,7 +29,8 @@ def not_in_list(l1, l2):
     elif l1 == [] and l2 == []:
         return []
     else:
-        return list(set(l2) - set(l1))
+        #return list(set(l2) - set(l1))
+        return union_lists_no_dupes(l2,l1)
 
 def __generate_search_url_by_day(query: str, date: Arrow):
     """
@@ -99,7 +102,7 @@ def __get_statuses(decoded_content):
         status['id_str'] = str(id)
         status['updated_at'] = arrow.utcnow().format(LONG_DATETIME_PATTERN) + "Z"
 
-        return status
+        return status.data
 
     statuses = []
     statuses_links = list_no_dupes(REGEX_STATUS_LINK_VALUES.findall(decoded_content))
@@ -253,11 +256,11 @@ def _get_branch_walk(params):
 
         try:
             new_statuses = not_in_list(twqstatus.get(query_from_content), cur_statuses)
-        except KeyboardInterrupt:
-            raise               
+        #except KeyboardInterrupt:
+        #    raise               
         except:
             new_statuses = []
-            logger.warning("🚨Error on content parameters, probably partial page download")
+            logger.exception("🚨Error on content parameters, probably partial page download")
 
         if len(cur_statuses) == 0:
             logger.debug(f"💬 No more statuses found 😅 |{query_from_content} -- Branch: {branch}|")
@@ -328,14 +331,14 @@ def _read_statuses(content: str):
 
     return statuses_data
 
-def _update_status_stats(status: Cut):
+def _update_status_stats(status: dict):
     """Get from desktop web version stats about current status (RT and FAVs) 
     
     Arguments:
-        status {Cut} -- Current status in scalpl object
+        status {dict} -- Current status in scalpl object
     
     Returns:
-        Cut -- Updated stats status
+        dict -- Updated stats status
     """
 
     try:
@@ -348,7 +351,7 @@ def _update_status_stats(status: Cut):
     except:
         logger.warning(f"🚨 Fail getting RT and Favs from 🐦: {status['id']}")       
 
-    return json.dumps(status.data, indent=4)
+    return json.dumps(status, indent=4)
 
 def __update_status_stats(id: int, session: Session = requests.Session()):
     
@@ -533,4 +536,23 @@ def __read_status(soup):
 
     #return status.data
     #return json.dumps(status.data, indent=4)
-    return status
+    return status.data
+
+
+def _send_kafka(cur_dict : dict, topic = None):
+
+    logger.info("Going to send kafka")
+
+    kafka = Kakfa()
+
+    cur_json = json.dumps(cur_dict, indent=4)
+    if topic is None:
+        logger.debug(f"📧 Sending to Kafka [{kafka.topic}]: {cur_json} - {cur_dict['id_str']}")
+        future_requests = kafka.producer.send(kafka.topic, f'{cur_json}'.encode(), key=cur_dict['id_str'].encode())
+    else:
+        logger.debug(f"📧 Sending to Kafka [{topic}]: {cur_json}")
+        future_requests = kafka.producer.send(topic, f'{cur_json}'.encode(), key=cur_dict['id_str'].encode())
+
+    future_response = future_requests.get(timeout=10)
+
+    return cur_dict
