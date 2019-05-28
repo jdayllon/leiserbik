@@ -102,7 +102,7 @@ def __get_statuses(decoded_content):
         status['@data_source'] = 'https://mobile.twitter.com'
         status['id'] = id
         status['id_str'] = str(id)
-        status['updated_at'] = arrow.utcnow().format(LONG_DATETIME_PATTERN) + "Z"
+        status['@updated_at'] = arrow.utcnow().format(LONG_DATETIME_PATTERN) + "Z"
 
         return status.data
 
@@ -357,7 +357,7 @@ def _update_status_stats(status: dict):
     except:
         logger.warning(f"🚨 Fail getting RT and Favs from 🐦: {status['id']}")
 
-    return json.dumps(status, indent=4)
+    return status
 
 
 def __update_status_stats(id: int, session: Session = requests.Session()):
@@ -405,7 +405,7 @@ def __read_status(soup):
     status['@data_source'] = 'https://mobile.twitter.com'
     status['id'] = int(cur_tweet_data['data-id'])
     status['id_str'] = str(status['id'])
-    status['updated_at'] = arrow.utcnow().format(LONG_DATETIME_PATTERN) + "Z"
+    status['@updated_at'] = arrow.utcnow().format(LONG_DATETIME_PATTERN) + "Z"
 
     status['user'] = {}
     try:
@@ -552,13 +552,17 @@ def _send_kafka(cur_dict: dict, topic=None):
     kafka = Kakfa()
 
     cur_json = json.dumps(cur_dict, indent=4)
-    if topic is None:
-        logger.debug(f"📧 Sending to Kafka [{kafka.topic}]: {cur_json} - {cur_dict['id_str']}")
-        future_requests = kafka.producer.send(kafka.topic, f'{cur_json}'.encode(), key=cur_dict['id_str'].encode())
-    else:
-        logger.debug(f"📧 Sending to Kafka [{topic}]: {cur_json}")
-        future_requests = kafka.producer.send(topic, f'{cur_json}'.encode(), key=cur_dict['id_str'].encode())
 
-    future_response = future_requests.get(timeout=10)
+    try:
+        if topic is None:
+            logger.debug(f"📧 Sending to Kafka [{kafka.topic}]: {cur_json} - {cur_dict['id_str']}")
+            future_requests = kafka.producer.send(kafka.topic, f'{cur_json}'.encode(), key=cur_dict['id_str'].encode())
+        else:
+            logger.debug(f"📧 Sending to Kafka [{topic}]: {cur_json} - {cur_dict['id_str']}")
+            future_requests = kafka.producer.send(topic, f'{cur_json}'.encode(), key=cur_dict['id_str'].encode())
+
+        future_response = future_requests.get(timeout=10)
+    except:
+        logger.exception(f"🚨 Error sending to Kafka: {cur_dict['id_str']}")
 
     return cur_dict

@@ -9,6 +9,7 @@ from leiserbik.async_http import fetch_all
 from leiserbik.twitter.core import __generate_search_url_by_range, _get_page_branches, __get_statuses, _get_user_statuses, \
     list_no_dupes, not_in_list, _get_branch_walk, _read_statuses, _update_status_stats, _send_kafka
 from leiserbik.twitter.query import TwitterQuery
+import json
 
 
 def query(tq: TwitterQuery):
@@ -50,6 +51,8 @@ def rawquery(query: str, start_date: str = arrow.get().format(SHORT_DATE_FORMAT)
 
     if kafka:
         stage_results = th.map(_send_kafka, stage_results, workers=MAX_WORKERS)
+
+    stage_results = th.map(lambda s: json.dumps(s, indent=4), stage_results, workers=MAX_WORKERS)
 
     # List conversion executes pipeline
     results = list(stage_results)
