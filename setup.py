@@ -12,7 +12,7 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = ['Click>=6.0', 'requests', 'loguru', 'arrow', 'aiohttp', 'pypeln', 'fake_useragent', 'bs4', 'ratelimit',
-                'scalpl', 'pypeln', 'python-slugify','iteration_utilities']
+                'scalpl', 'pypeln', 'python-slugify','numpy']
 
 setup_requirements = ['pytest-runner', ]
 

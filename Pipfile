@@ -34,4 +34,5 @@ leiserbik = {editable = true,path = "."}
 click = "==6.7"
 kafka-python = "*"
 faust = {extras = ["rockdb"],version = "*"}
-iteration-utilities = "*"
+requests-html = "*"
+numpy = "*"
