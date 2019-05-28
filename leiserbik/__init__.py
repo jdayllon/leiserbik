@@ -13,7 +13,8 @@ import re
 import requests
 from fake_useragent import UserAgent
 from loguru import logger
-from iteration_utilities import unique_everseen
+#from iteration_utilities import unique_everseen
+import numpy as np
 
 SHORT_DATE_FORMAT = 'YYYY-MM-DD'
 LONG_DATETIME_PATTERN = "YYYY-MM-DDTHH:mm:ss"
@@ -103,8 +104,15 @@ else:
     WORK_DIR = './'
 
 def list_no_dupes(l):
-    return list(unique_everseen(l))
+    #return list(unique_everseen(l))
+
+    ul = list(np.unique(np.array(l).astype(str)))
+    return ul
 
 
 def union_lists_no_dupes(l1, l2):
-    return list(unique_everseen(l2) + unique_everseen(l1))
+
+    ul1 = list(np.unique(np.array(l1).astype(str)))
+    ul2 = list(np.unique(np.array(l2).astype(str)))
+
+    return list(ul1 + ul2)

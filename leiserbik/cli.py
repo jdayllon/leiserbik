@@ -8,7 +8,7 @@ import click
 from slugify import slugify
 
 from leiserbik import *
-from leiserbik import watcher, capturer
+from leiserbik.twitter import watcher, capturer
 import arrow
 
 #from kafka import KafkaProducer
@@ -37,11 +37,11 @@ def main(ctx, verbose, stream, write, kafka, hydrate, update):
     elif verbose == 2:
         logger.info("🕵 ‍Logger level: DEBUG")
         logger.remove()
-        logger.add(sys.stderr, level="DEBUG")
+        logger.add(sys.stderr, level="DEBUG")#, backtrace=True, diagnose=True)
     else:
         logger.info("🕵 ‍Logger level: TRACE")
         logger.remove()
-        logger.add(sys.stderr, level="TRACE")
+        logger.add(sys.stderr, level="TRACE")#, backtrace=True, diagnose=True)
 
     if hydrate == 0:
         logger.info("🌞 Only capture status id")
@@ -105,6 +105,8 @@ def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(
         #kafka_producer = KafkaProducer(bootstrap_servers='127.0.0.1:9092')
         kafka_instance = Kakfa('127.0.0.1:9092')
         kafka_producer = kafka_instance.producer
+        kafka_producer_enabled = True
+
     else:
         kafka_producer = None
 
@@ -142,7 +144,7 @@ def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(
         if filename is not None:
             logger.info(f"💾 Opening {filename} for streaming output")
             with open(filename, 'w') as f:
-                for cur_statuses in operation.iter_rawquery(query, end_date=end_date, hydrate=hydrate):
+                for cur_statuses in operation.iter_rawquery(query, end_date=end_date, hydrate=hydrate, kafka=kafka_producer_enabled ):
                     logger.info(f"🚚 Iteration: {counter} | Elements {len(cur_statuses)}")
                     for cur_status in cur_statuses:
                         print(cur_status)
@@ -151,7 +153,7 @@ def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(
                         f.flush()
                     counter += 1
         else:
-            for cur_statuses in operation.iter_rawquery(query, end_date=end_date, hydrate=hydrate):
+            for cur_statuses in operation.iter_rawquery(query, end_date=end_date, hydrate=hydrate, kafka=kafka_producer_enabled ):
                 logger.info(f"🚚 Iteration: {counter} | Elements {len(cur_statuses)}")
 
                 for cur_status in cur_statuses:
@@ -173,7 +175,7 @@ def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(
         if filename is not None:
             logger.info(f"💾 Opening {filename}")
             with open(filename, 'w') as f:
-                cur_statuses = watcher.rawquery(query, hydrate=hydrate)
+                cur_statuses = watcher.rawquery(query, hydrate=hydrate, kafka=kafka_producer_enabled)
                 with open(filename, 'w') as f:
                     for cur_status in cur_statuses:
                         cprint(cur_status)
@@ -183,7 +185,7 @@ def rawquery(ctx, query=None, end_date: str = arrow.get().shift(days=-1).format(
             logger.info(f"💾 Closing {filename}")
 
         else:
-            cur_statuses = watcher.rawquery(query, hydrate=hydrate)
+            cur_statuses = watcher.rawquery(query, hydrate=hydrate, kafka=kafka_producer_enabled)
             for cur_status in cur_statuses:
                 if kafka_producer is not None:
                     pass

@@ -7,8 +7,6 @@ class Borg():
         instance.__dict__ = cls._state
         return instance
 
-import copy
-import sys
 
 class MetaBorg(type):
     _state = {"__skip_init__": False}
@@ -40,28 +38,10 @@ class MetaBorg(type):
         return instance
 
 from kafka import KafkaProducer
-from leiserbik import logger, LEISERBIK_TOPIC_STATUS_ID
-import json
+from leiserbik import LEISERBIK_TOPIC_STATUS_ID
+
+
 class Kakfa(metaclass=MetaBorg):
     def __init__(self, kafka_servers):
         self.producer = KafkaProducer(bootstrap_servers=kafka_servers)
         self.topic = LEISERBIK_TOPIC_STATUS_ID
-
-    @staticmethod
-    def send(cur_dict : dict, topic = None):
-        
-        kafka = Kakfa()
-
-        cur_json = json.dumps(cur_dict, indent=4)
-        if topic is None:
-            logger.debug(f"📧 Sending to Kafka [{kafka.topic}]: {cur_json}")
-            future_requests = kafka.producer.send(kafka.topic, f'{cur_json}'.encode())
-        else:
-            logger.debug(f"📧 Sending to Kafka [{topic}]: {cur_json}")
-            future_requests = kafka.producer.send(topic, f'{cur_json}'.encode())
-
-        future_response = future_requests.get(timeout=10)
-
-        return cur_dict
-
-    
